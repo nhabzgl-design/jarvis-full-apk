@@ -39,18 +39,7 @@ button:focus-visible{border-color:var(--cy);outline:none}
 <div id="log"></div>
 <div id="bar"><button id="lang">TL</button><input id="txt" placeholder="Type or tap the mic…" autocomplete="off"><button id="send">SEND</button><button id="keys">PASS</button><button id="mic">MIC</button></div>
 <script>
-const BASES=['https://jarvis-ai-9drb.onrender.com','https://jarvis-ai-9drf.onrender.com'];
-async function apiFetch(path, options={}){
-  let last;
-  for(const base of BASES){
-    try{
-      const r=await fetch(base+path,options);
-      if(r.ok||r.status===401)return r;
-      last=new Error('HTTP '+r.status);
-    }catch(e){last=e}
-  }
-  throw last||new Error('network error');
-}
+const BASE='https://jarvis-ai-9drf.onrender.com';
 const $=id=>document.getElementById(id);
 const P=()=>(window.Capacitor&&window.Capacitor.Plugins)||{};
 const native=()=>!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
@@ -110,7 +99,7 @@ const tools=[
   execute:async()=>{try{const D=P().Device;if(D){const i=await D.getInfo();return i.manufacturer+' '+i.model+', Android '+i.osVersion}return navigator.userAgent.slice(0,80)}catch(e){return 'device error'}}}
 ];
 async function llm(m){
-  const r=await apiFetch('/chat',{method:'POST',headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
+  const r=await fetch(BASE+'/chat',{method:'POST',headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
   if(r.status==401)throw new Error('PASSCODE');
   if(!r.ok)throw new Error('HTTP '+r.status);
   return r.json();
@@ -151,7 +140,7 @@ async function speak(s){
   speaking=true;setSt('SPEAKING');
   try{
     if(K('voice')!=='phone'){
-      const r=await apiFetch('/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
+      const r=await fetch(BASE+'/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
       if(!r.ok)throw new Error('tts '+r.status);
       const a=au=new Audio(URL.createObjectURL(await r.blob()));
       await new Promise((res,rej)=>{a.onended=res;a.onerror=()=>rej(new Error('audio'));a.play().catch(rej)});
@@ -197,7 +186,7 @@ $('send').onclick=()=>{const q=$('txt').value.trim();if(q){$('txt').value='';ask
 // status chips + wake up Render (free plan sleeps)
 $('ct').className='g';$('cp').className=native()?'g':'';
 $('cv').className=(P().SpeechRecognition||window.SpeechRecognition||window.webkitSpeechRecognition)?'g':'';
-(async()=>{try{const r=await apiFetch('/health');$('cc').className=r.ok?'g':'';log('sys',r.ok?'Server gising na.':'Server error '+r.status)}catch(_){log('sys','Ginigising ko pa yung server, hintay ng ~50 segundo...');setTimeout(()=>apiFetch('/health').then(r=>{$('cc').className=r.ok?'g':''}).catch(()=>{}),30000)}})();
+(async()=>{try{const r=await fetch(BASE+'/health');$('cc').className=r.ok?'g':'';log('sys',r.ok?'Server gising na.':'Server error '+r.status)}catch(_){log('sys','Ginigising ko pa yung server, hintay ng ~50 segundo...');setTimeout(()=>fetch(BASE+'/health').then(r=>{$('cc').className=r.ok?'g':''}).catch(()=>{}),30000)}})();
 
 // notification reader status
 (async()=>{const N=P().JarvisNative;if(!N)return;
