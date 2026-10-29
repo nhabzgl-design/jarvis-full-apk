@@ -1,1 +1,285 @@
+name: Build JARVIS APK
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install deps
+        run: npm install
+
+      - name: Prepare web assets
+        run: |
+          mkdir -p www
+          cp index.html www/index.html
+
+      - name: Add Android platform
+        run: |
+          test -d android || npx cap add android
+
+      - name: Add native code (alarm, timer, notification reader)
+        run: |
+          D=android/app/src/main/java/com/jarvis/ai
+          mkdir -p "$D"
+          cat > "$D/JarvisNativePlugin.java" <<'EOF'
+          package com.jarvis.ai;
+
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.provider.AlarmClock;
+          import android.provider.Settings;
+          import com.getcapacitor.JSArray;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "JarvisNative")
+          public class JarvisNativePlugin extends Plugin {
+
+              @Override
+              public void load() {
+                  JarvisNotifService.plugin = this;
+              }
+
+              void emitNotif(String app, String title, String text) {
+                  JSObject o = new JSObject();
+                  o.put("app", app);
+                  o.put("title", title);
+                  o.put("text", text);
+                  notifyListeners("notif", o);
+              }
+
+              private SharedPreferences prefs() {
+                  return getContext().getSharedPreferences("jarvis", 0);
+              }
+
+              @PluginMethod
+              public void setAlarm(PluginCall call) {
+                  Integer hour = call.getInt("hour");
+                  Integer minute = call.getInt("minute");
+                  if (hour == null || minute == null) { call.reject("hour and minute required"); return; }
+                  Intent i = new Intent(AlarmClock.ACTION_SET_ALARM);
+                  i.putExtra(AlarmClock.EXTRA_HOUR, hour.intValue());
+                  i.putExtra(AlarmClock.EXTRA_MINUTES, minute.intValue());
+                  i.putExtra(AlarmClock.EXTRA_MESSAGE, call.getString("label", "Jarvis"));
+                  i.putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try { getContext().startActivity(i); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+              }
+
+              @PluginMethod
+              public void setTimer(PluginCall call) {
+                  Integer secs = call.getInt("seconds");
+                  if (secs == null) { call.reject("seconds required"); return; }
+                  Intent i = new Intent(AlarmClock.ACTION_SET_TIMER);
+                  i.putExtra(AlarmClock.EXTRA_LENGTH, secs.intValue());
+                  i.putExtra(AlarmClock.EXTRA_MESSAGE, call.getString("label", "Jarvis"));
+                  i.putExtra(AlarmClock.EXTRA_SKIP_UI, true);
+                  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try { getContext().startActivity(i); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+              }
+
+              @PluginMethod
+              public void notifAccess(PluginCall call) {
+                  String flat = Settings.Secure.getString(getContext().getContentResolver(), "enabled_notification_listeners");
+                  boolean on = flat != null && flat.contains(getContext().getPackageName());
+                  JSObject o = new JSObject();
+                  o.put("enabled", on);
+                  o.put("autoRead", prefs().getBoolean("autoread", true));
+                  call.resolve(o);
+              }
+
+              @PluginMethod
+              public void openNotifSettings(PluginCall call) {
+                  Intent i = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try { getContext().startActivity(i); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+              }
+
+              @PluginMethod
+              public void setAutoRead(PluginCall call) {
+                  boolean e = call.getBoolean("enabled", true);
+                  prefs().edit().putBoolean("autoread", e).apply();
+                  call.resolve();
+              }
+
+              @PluginMethod
+              public void getNotifs(PluginCall call) {
+                  JSArray arr = new JSArray();
+                  synchronized (JarvisNotifService.recent) {
+                      for (String s : JarvisNotifService.recent) arr.put(s);
+                  }
+                  JSObject o = new JSObject();
+                  o.put("items", arr);
+                  call.resolve(o);
+              }
+          }
+          EOF
+          cat > "$D/JarvisNotifService.java" <<'EOF'
+          package com.jarvis.ai;
+
+          import android.app.Notification;
+          import android.os.Bundle;
+          import android.service.notification.NotificationListenerService;
+          import android.service.notification.StatusBarNotification;
+          import android.speech.tts.TextToSpeech;
+          import java.util.ArrayList;
+          import java.util.Collections;
+          import java.util.HashMap;
+          import java.util.List;
+          import java.util.Locale;
+          import java.util.Map;
+          import java.util.regex.Pattern;
+
+          public class JarvisNotifService extends NotificationListenerService implements TextToSpeech.OnInitListener {
+
+              static final List<String> recent = Collections.synchronizedList(new ArrayList<String>());
+              static JarvisNativePlugin plugin;
+
+              private static final Pattern TL = Pattern.compile(
+                  "\\b(ang|ng|mga|po|opo|ako|ikaw|hindi|naman|sa|ko|mo|natin|salamat|boss|gusto|kasi|pero|yung|ano|oo|sige|ayos|tapos|na|ba|lang|nga|kita|tayo|bukas|mamaya|ngayon|kumain|wala|meron|kayo|siya|namin|nyo|niyo|po)\\b",
+                  Pattern.CASE_INSENSITIVE);
+
+              private TextToSpeech tts;
+              private boolean ttsReady = false;
+              private final Map<String, Long> seen = new HashMap<String, Long>();
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  tts = new TextToSpeech(getApplicationContext(), this);
+              }
+
+              @Override
+              public void onInit(int status) {
+                  ttsReady = (status == TextToSpeech.SUCCESS);
+              }
+
+              @Override
+              public void onDestroy() {
+                  if (tts != null) { tts.stop(); tts.shutdown(); }
+                  super.onDestroy();
+              }
+
+              private String clean(CharSequence cs) {
+                  if (cs == null) return "";
+                  String s = cs.toString().replaceAll("[\\p{So}\\p{Cs}]", "").replaceAll("\\s+", " ").trim();
+                  if (s.length() > 300) s = s.substring(0, 300);
+                  return s;
+              }
+
+              @Override
+              public void onNotificationPosted(StatusBarNotification sbn) {
+                  try {
+                      String pkg = sbn.getPackageName();
+                      String app = null;
+                      if ("com.facebook.orca".equals(pkg)) app = "Messenger";
+                      else if ("com.facebook.mlite".equals(pkg)) app = "Messenger";
+                      else if ("com.facebook.katana".equals(pkg)) app = "Facebook";
+                      else if ("com.facebook.lite".equals(pkg)) app = "Facebook";
+                      if (app == null) return;
+
+                      Notification n = sbn.getNotification();
+                      if ((n.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return;
+                      if (sbn.isOngoing()) return;
+
+                      Bundle e = n.extras;
+                      String title = clean(e.getCharSequence(Notification.EXTRA_TITLE));
+                      String text = clean(e.getCharSequence(Notification.EXTRA_TEXT));
+                      if (text.isEmpty()) return;
+                      if (text.toLowerCase(Locale.ROOT).contains("chat heads active")) return;
+
+                      String key = pkg + "|" + title + "|" + text;
+                      long now = System.currentTimeMillis();
+                      synchronized (seen) {
+                          Long last = seen.get(key);
+                          if (last != null && now - last < 60000) return;
+                          seen.put(key, now);
+                          if (seen.size() > 200) seen.clear();
+                      }
+
+                      recent.add(0, app + " | " + (title.isEmpty() ? "?" : title) + ": " + text);
+                      while (recent.size() > 20) recent.remove(recent.size() - 1);
+
+                      if (plugin != null) {
+                          try { plugin.emitNotif(app, title, text); } catch (Exception ignored) { }
+                      }
+
+                      boolean auto = getSharedPreferences("jarvis", 0).getBoolean("autoread", true);
+                      if (!auto || !ttsReady) return;
+
+                      boolean tl = TL.matcher(text).find();
+                      String line;
+                      if (app.equals("Messenger")) {
+                          String who = title.isEmpty() ? "" : title;
+                          if (tl) line = "Boss, may mensahe sa Messenger" + (who.isEmpty() ? "" : " galing kay " + who) + ". " + text;
+                          else line = "Boss, new Messenger message" + (who.isEmpty() ? "" : " from " + who) + ". " + text;
+                      } else {
+                          if (tl) line = "Boss, may notification sa Facebook. " + text;
+                          else line = "Boss, new Facebook notification. " + text;
+                      }
+
+                      int r = tts.setLanguage(tl ? new Locale("fil", "PH") : Locale.US);
+                      if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
+                          tts.setLanguage(Locale.US);
+                      }
+                      tts.setPitch(0.9f);
+                      tts.speak(line, TextToSpeech.QUEUE_ADD, null, "jv" + now);
+                  } catch (Exception ignored) { }
+              }
+          }
+          EOF
+          cat > "$D/MainActivity.java" <<'EOF'
+          package com.jarvis.ai;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(JarvisNativePlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          EOF
+
+      - name: Patch manifest
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          if ! grep -q RECORD_AUDIO "$M"; then
+            sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>\n    <queries><intent><action android:name="android.speech.RecognitionService"/></intent><intent><action android:name="android.intent.action.TTS_SERVICE"/></intent></queries>\n    <application#' "$M"
+          fi
+          if ! grep -q JarvisNotifService "$M"; then
+            sed -i 's#</application>#<service android:name="com.jarvis.ai.JarvisNotifService" android:label="Jarvis" android:exported="true" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"><intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter></service>\n    </application>#' "$M"
+          fi
+          cat "$M"
+
+      - name: Sync web files
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
