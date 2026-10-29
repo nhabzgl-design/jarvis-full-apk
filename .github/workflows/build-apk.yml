@@ -1,1 +1,30 @@
-
+name: Build JARVIS Full Access APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - run: npm install
+      - run: npx cap add android || echo exists
+      - run: npx cap copy && npx cap sync
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - name: Add permissions
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          grep -q READ_SMS $M || sed -i '/<application/a\    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />' $M
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
