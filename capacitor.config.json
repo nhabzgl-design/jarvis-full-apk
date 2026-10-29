@@ -2,5 +2,6 @@
   "appId": "com.jarvis.ai",
   "appName": "JARVIS",
   "webDir": "www",
-  "bundledWebRuntime": false
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
 }
