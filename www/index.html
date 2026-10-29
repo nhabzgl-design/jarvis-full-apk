@@ -58,7 +58,7 @@ button:focus-visible,button:hover{border-color:var(--cy);outline:none}
 </head>
 <body>
 <header><span>J.A.R.V.I.S</span><span id="st">STANDBY</span></header>
-<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i class="g"></i>Tools 11</span><span><i class="g"></i>Phone links</span></div>
+<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i class="g"></i>Tools 11 - NO FACE</span><span><i class="g"></i>Phone links</span></div>
 <div id="stage"><canvas id="orb"></canvas><div id="core">J.A.R.V.I.S<small id="int"></small></div></div>
 <div id="log"></div>
 <div id="bar"><button id="lang" title="Listening language">EN</button><input id="txt" placeholder="Type or tap the mic…" autocomplete="off"><button id="send">SEND</button><button id="keys">PASS</button><button id="mic">MIC</button></div>
@@ -93,62 +93,14 @@ function openLink(u){let w=null;try{w=window.open(u,'_blank')}catch(_){}if(!w)lo
 const NSR=()=>window.Capacitor&&window.Capacitor.Plugins&&Capacitor.Plugins.SpeechRecognition;
 const tools=[
  {name:'open_url',description:'Open website',inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']},execute:({url})=>{openLink(url);return 'opened '+url}},
- {name:'phone_action',description:'Call SMS WhatsApp email kind tel sms whatsapp mailto',inputSchema:{type:'object',properties:{kind:{type:'string'},target:{type:'string'},body:{type:'string'}},required:['kind','target']},execute:({kind,target,body})=>{const b=encodeURIComponent(body||'');let u='';if(kind=='whatsapp'){u='https://wa.me/'+String(target).replace(/[^0-9]/g,'')+'?text='+b;}else if(kind=='mailto'){u='mailto:'+target+'?body='+b;}else{u=kind+':'+target+(kind=='sms'&&body?'?body='+b:'');}openLink(u);return 'prepared '+kind}},
- {name:'set_timer',description:'Set timer seconds',inputSchema:{type:'object',properties:{seconds:{type:'number'},label:{type:'string'}},required:['seconds']},execute:({seconds,label})=>{setTimeout(()=>{log('sys','Timer: '+(label||'done'))},seconds*1000);return 'timer '+seconds}},
+ {name:'phone_action',description:'Call SMS WhatsApp email',inputSchema:{type:'object',properties:{kind:{type:'string'},target:{type:'string'},body:{type:'string'}},required:['kind','target']},execute:({kind,target,body})=>{const b=encodeURIComponent(body||'');let u='';if(kind=='whatsapp'){u='https://wa.me/'+String(target).replace(/[^0-9]/g,'')+'?text='+b;}else if(kind=='mailto'){u='mailto:'+target+'?body='+b;}else{u=kind+':'+target+(kind=='sms'&&body?'?body='+b:'');}openLink(u);return 'prepared '+kind}},
+ {name:'set_timer',description:'Set timer',inputSchema:{type:'object',properties:{seconds:{type:'number'},label:{type:'string'}},required:['seconds']},execute:({seconds,label})=>{setTimeout(()=>{log('sys','Timer: '+(label||'done'))},seconds*1000);return 'timer '+seconds}},
  {name:'remember',description:'Save note',inputSchema:{type:'object',properties:{note:{type:'string'}}},required:[],execute:({note})=>{let n=[];try{n=JSON.parse(localStorage.getItem('jv')||'[]')}catch(_){}if(note){n.push(note);localStorage.setItem('jv',JSON.stringify(n));return 'saved'}return JSON.stringify(n)}},
- {name:'current_time',description:'Current time',inputSchema:{type:'object',properties:{},required:[]},execute:()=>new Date().toString()},
- {name:'get_location',description:'Get GPS location and open Maps',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{
-   try{
-     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Geolocation){
-       const pos=await Capacitor.Plugins.Geolocation.getCurrentPosition();
-       const lat=pos.coords.latitude, lng=pos.coords.longitude;
-       openLink('https://maps.google.com/?q='+lat+','+lng);
-       return 'Location: '+lat+', '+lng+' Opened Maps';
-     }
-     if(navigator.geolocation){
-       return await new Promise((res,rej)=>{
-         navigator.geolocation.getCurrentPosition(p=>{
-           const lat=p.coords.latitude, lng=p.coords.longitude;
-           openLink('https://maps.google.com/?q='+lat+','+lng);
-           res('Location: '+lat+', '+lng);
-         }, e=>rej('GPS error '+e.message));
-       });
-     }
-     return 'Location not available';
-   }catch(e){return 'Location error '+e.message}
- }},
- {name:'get_battery',description:'Get battery level',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{
-   try{
-     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){
-       const info=await Capacitor.Plugins.Device.getBatteryInfo().catch(()=>null);
-       if(info) return 'Battery '+Math.round((info.batteryLevel||0)*100)+'%, Charging '+ (info.isCharging?'yes':'no');
-     }
-     if(navigator.getBattery){
-       const b=await navigator.getBattery();
-       return 'Battery '+Math.round(b.level*100)+'%, Charging '+(b.charging?'yes':'no');
-     }
-     return 'Battery info not available';
-   }catch(e){return 'Battery error '+e.message}
- }},
- {name:'get_device_info',description:'Get device model OS',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{
-   try{
-     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){
-       const info=await Capacitor.Plugins.Device.getInfo();
-       return 'Model '+info.model+', OS '+info.operatingSystem+' '+info.osVersion;
-     }
-     return 'UA '+navigator.userAgent.slice(0,100);
-   }catch(e){return 'Device error '+e.message}
- }},
- {name:'open_camera',description:'Open camera',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{
-   try{
-     if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Camera){
-       const img=await Capacitor.Plugins.Camera.getPhoto({quality:90, resultType:'uri'});
-       log('sys','Photo taken');
-       return 'Photo taken';
-     }
-     return 'Camera plugin not installed yet, will add';
-   }catch(e){return 'Camera error '+e.message}
- }}
+ {name:'current_time',description:'Time',inputSchema:{type:'object',properties:{},required:[]},execute:()=>new Date().toString()},
+ {name:'get_location',description:'GPS location',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Geolocation){const pos=await Capacitor.Plugins.Geolocation.getCurrentPosition();const lat=pos.coords.latitude,lng=pos.coords.longitude;openLink('https://maps.google.com/?q='+lat+','+lng);return 'Location '+lat+','+lng;}if(navigator.geolocation){return await new Promise((res,rej)=>{navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude;openLink('https://maps.google.com/?q='+lat+','+lng);res('Location '+lat+','+lng);},e=>rej('GPS error'));});}return 'Location not available';}catch(e){return 'Location error '+e.message}}},
+ {name:'get_battery',description:'Battery',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){const info=await Capacitor.Plugins.Device.getBatteryInfo().catch(()=>null);if(info)return 'Battery '+Math.round((info.batteryLevel||0)*100)+'%, Charging '+(info.isCharging?'yes':'no');}if(navigator.getBattery){const b=await navigator.getBattery();return 'Battery '+Math.round(b.level*100)+'%, '+(b.charging?'charging':'not charging');}return 'Battery not available';}catch(e){return 'Battery error '+e.message}}},
+ {name:'get_device_info',description:'Device info',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){const info=await Capacitor.Plugins.Device.getInfo();return 'Model '+info.model+', OS '+info.operatingSystem+' '+info.osVersion;}return 'UA '+navigator.userAgent.slice(0,80);}catch(e){return 'Device error '+e.message}}},
+ {name:'open_camera',description:'Open camera',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Camera){await Capacitor.Plugins.Camera.getPhoto({quality:90,resultType:'uri'});return 'Photo taken';}return 'Camera not installed';}catch(e){return 'Camera error '+e.message}}}
 ];try{n=JSON.parse(localStorage.getItem('jv')||'[]');if(note){n.push(note);localStorage.setItem('jv',JSON.stringify(n))}}catch(_){return 'storage unavailable'}return note?'saved':JSON.stringify(n)}},
  {name:'current_time',description:'Get the current local date and time.',inputSchema:{type:'object',properties:{}},execute:()=>new Date().toString()}];
 function voice(tl){
@@ -245,6 +197,23 @@ async function speak(s){
   }
 }
 $('keys').onclick=()=>{const p=prompt('Passcode',K('pw'));try{if(p!==null)localStorage.setItem('pw',p.trim())}catch(_){}};
+
+async function nativeListen(){
+  if(nl||!(on&&!speaking&&!busy))return;
+  nl=true;setSt('LISTENING');
+  try{
+    const r=await NSR().start({language:lang,maxResults:1,partialResults:false,popup:false});
+    nl=false;
+    const q=((r&&r.matches&&r.matches[0])||'').trim();
+    if(q)ask(q);
+    else if(on)setTimeout(listen,300)
+  }catch(_){
+    nl=false;
+    if(on)setTimeout(listen,1200)
+  }
+}
+function listen(){if(!(on&&!speaking&&!busy))return;if(NSR()){nativeListen();return}if(rec){try{rec.start();setSt('LISTENING')}catch(_){}}}
+
 function listen(){if(!(on&&rec&&!speaking&&!busy))return;try{rec.start();setSt('LISTENING')}catch(_){}}
 function initRec(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){log('sys','Speech recognition is not supported in this browser. Use Chrome, or type below.');return false}
  rec=new SR();rec.lang=lang;rec.interimResults=true;
