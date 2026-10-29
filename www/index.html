@@ -78,7 +78,7 @@ const tools=[
   execute:async({kind,target,body})=>{const b=encodeURIComponent(body||'');let u;if(kind=='whatsapp')u='https://wa.me/'+String(target).replace(/\D/g,'')+'?text='+b;else if(kind=='mailto')u='mailto:'+target+'?body='+b;else u=kind+':'+target+(kind=='sms'&&body?'?body='+b:'');return (await openUrl(u))?'prepared '+kind+' (user must confirm in the app)':'failed'}},
  {name:'set_timer',description:'Set a countdown timer in the phone clock app. seconds is the total length.',inputSchema:obj({seconds:{type:'number'},label:{type:'string'}},['seconds']),
   execute:async({seconds,label})=>{const N=P().JarvisNative;if(N){try{await N.setTimer({seconds:Math.round(seconds),label:label||'Jarvis'});return 'timer set in clock app for '+seconds+' seconds'}catch(e){}}
-   setTimeout(()=>{log('sys','Timer: '+(label||'done'));speak(lang=='fil-PH'?'Boss, tapos na yung timer'+(label?' para sa '+label:'')+'.':'Boss, your timer'+(label?' for '+label:'')+' is complete.')},seconds*1000);return 'timer set inside Jarvis for '+seconds+' seconds (works only while the app is open)'}},
+   setTimeout(()=>{log('sys','Timer: '+(label||'done'));speak(lang!='en-US'?'Boss, tapos na yung timer'+(label?' para sa '+label:'')+'.':'Boss, your timer'+(label?' for '+label:'')+' is complete.')},seconds*1000);return 'timer set inside Jarvis for '+seconds+' seconds (works only while the app is open)'}},
  {name:'set_alarm',description:'Set an alarm in the phone clock app at a clock time. hour is 0-23, minute is 0-59. For relative requests like "in 30 minutes", call current_time first and compute the time.',inputSchema:obj({hour:{type:'number'},minute:{type:'number'},label:{type:'string'}},['hour','minute']),
   execute:async({hour,minute,label})=>{const N=P().JarvisNative;if(!N)return 'alarm needs the installed APK, not available here';try{await N.setAlarm({hour:Math.round(hour),minute:Math.round(minute),label:label||'Jarvis'});return 'alarm set for '+String(Math.round(hour)).padStart(2,'0')+':'+String(Math.round(minute)).padStart(2,'0')}catch(e){return 'alarm failed: '+(e.message||e)}}},
  {name:'read_notifications',description:'Get the most recent Messenger and Facebook notifications so you can read them to the user.',inputSchema:obj({}),
@@ -152,35 +152,47 @@ async function speak(s){
 }
 $('st').ondblclick=()=>{const p=K('voice')==='phone'?'':'phone';try{localStorage.setItem('voice',p)}catch(_){}log('sys',p?'Phone voice ON (libre, walang ElevenLabs)':'ElevenLabs voice ON')};
 $('keys').onclick=()=>{const p=prompt('Passcode',K('pw'));try{if(p!==null)localStorage.setItem('pw',p.trim())}catch(_){}};
+let fails=0,popup=false;
+function stopMic(msg){on=false;$('mic').classList.remove('on');setSt('STANDBY');if(msg)log('sys',msg)}
 async function listen(){
   if(!on||speaking||busy)return;
   setSt('LISTENING');
   const SR=P().SpeechRecognition;
   if(SR){
     try{
-      const r=await SR.start({language:lang,maxResults:1,prompt:'',partialResults:false,popup:false});
+      const r=await SR.start({language:lang,maxResults:1,prompt:'Magsalita ka boss',partialResults:false,popup:popup});
       const q=r&&r.matches&&r.matches[0];
-      if(q&&q.trim())return ask(q.trim());
+      if(q&&q.trim()){fails=0;$('int').textContent='';return ask(q.trim())}
+      $('int').textContent='walang narinig...';
     }catch(e){
       const m=String(e&&e.message||e);
-      if(/permission|denied/i.test(m)){on=false;$('mic').classList.remove('on');setSt('STANDBY');return log('sys','Walang mic permission. I-allow sa Settings > Apps > JARVIS > Permissions.')}
+      if(/permission/i.test(m))return stopMic('Walang mic permission. Settings > Apps > JARVIS > Permissions > Microphone > Allow.');
+      if(/network/i.test(m)){log('sys','Mic: walang internet ('+m+')');fails++}
+      else if(/no match|no speech|understand/i.test(m)){$('int').textContent='walang narinig...'}
+      else{log('sys','Mic error: '+m);fails++}
+      if(fails>=3){
+        if(!popup){popup=true;fails=0;log('sys','Lilipat sa Google voice popup. Magsalita kapag lumabas ito.')}
+        else return stopMic('Hindi gumana ang mic recognition ('+m+'). I-type muna, at ipadala sa akin ang error na ito.');
+      }
+      try{await SR.stop()}catch(_){}
     }
-    if(on&&!busy&&!speaking)setTimeout(listen,500);
+    if(on&&!busy&&!speaking)setTimeout(listen,fails?1000:400);
     return;
   }
   const W=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!W){on=false;$('mic').classList.remove('on');setSt('STANDBY');return log('sys','Walang speech recognition dito. Mag-type na lang.')}
+  if(!W)return stopMic('Walang speech recognition dito. Mag-type na lang.');
   rec=new W();rec.lang=lang;rec.onresult=e=>{const q=e.results[0][0].transcript;if(q)ask(q)};rec.onerror=()=>{};rec.onend=()=>{if(on&&!busy&&!speaking)setTimeout(listen,400)};
   try{rec.start()}catch(_){}
 }
 $('mic').onclick=async()=>{
   if(on){on=false;$('mic').classList.remove('on');try{const SR=P().SpeechRecognition;SR&&await SR.stop();rec&&rec.abort()}catch(_){}if(au)au.pause();speaking=busy=false;setSt('STANDBY');return}
   const SR=P().SpeechRecognition;
-  if(SR){try{const p=await SR.requestPermissions();if(p.speechRecognition!=='granted'){return log('sys','Kailangan ng mic permission. I-allow mo.')}const a=await SR.available();if(!a.available)return log('sys','Walang speech service sa phone. I-install ang Google app / Speech Services.')}catch(e){log('sys','Mic error: '+(e.message||e))}}
+  if(SR){try{const p=await SR.requestPermissions();if(p.speechRecognition!=='granted'){return log('sys','Kailangan ng mic permission. I-allow mo.')}const a=await SR.available();if(!a.available)return log('sys','Walang speech service sa phone. I-install o i-update ang Google app / Speech Services by Google.');fails=0;log('sys','Mic OK. Wika: '+lang+(popup?' (popup)':''))}catch(e){log('sys','Mic error: '+(e.message||e))}}
   on=true;$('mic').classList.add('on');
-  if(!hist.length)reply(lang=='fil-PH'?'Online na ako, boss. Ano ang maitutulong ko?':'Jarvis online. How may I assist, boss?');else listen();
+  if(!hist.length)reply(lang!='en-US'?'Online na ako, boss. Ano ang maitutulong ko?':'Jarvis online. How may I assist, boss?');else listen();
 };
-$('lang').onclick=function(){lang=lang=='en-US'?'fil-PH':'en-US';this.textContent=lang=='en-US'?'EN':'TL';try{const SR=P().SpeechRecognition;SR&&SR.stop()}catch(_){}};
+const LG=[['fil-PH','TL'],['en-PH','PH'],['en-US','EN']];let gi=0;
+$('lang').onclick=function(){gi=(gi+1)%3;lang=LG[gi][0];this.textContent=LG[gi][1];fails=0;try{const SR=P().SpeechRecognition;SR&&SR.stop()}catch(_){}log('sys','Wika ng mic: '+lang+' ('+LG[gi][1]+')')};
 $('txt').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){const q=e.target.value.trim();e.target.value='';ask(q)}};
 $('send').onclick=()=>{const q=$('txt').value.trim();if(q){$('txt').value='';ask(q)}};
 // status chips + wake up Render (free plan sleeps)
