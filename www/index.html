@@ -116,10 +116,13 @@ const tools=[
   execute:async()=>{try{const D=P().Device;if(D){const i=await D.getInfo();return i.manufacturer+' '+i.model+', Android '+i.osVersion}return navigator.userAgent.slice(0,80)}catch(e){return 'device error'}}}
 ];
 async function llm(m){
-  const r=await fetch(BASE+'/chat',{method:'POST',headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
-  if(r.status==401)throw new Error('PASSCODE');
-  if(!r.ok)throw new Error('HTTP '+r.status);
-  return r.json();
+  const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),75000);
+  try{
+    const r=await fetch(BASE+'/chat',{method:'POST',signal:ac.signal,headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
+    if(r.status==401)throw new Error('PASSCODE');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.json();
+  }finally{clearTimeout(tm)}
 }
 async function ask(q){
   if(busy)return;busy=true;log('you',q);setSt('THINKING');
@@ -138,7 +141,7 @@ async function ask(q){
     reply((out||'Sige boss.').replace(/[*#_`]/g,''));
   }catch(e){
     hist.pop();
-    const msg=e.message=='PASSCODE'?'Boss, mali yung passcode. Pindutin mo yung PASS.':'Boss, hindi ko maabot yung server. Baka natutulog pa, subukan mo ulit mamaya.';
+    const msg=e.message=='PASSCODE'?'Boss, mali yung passcode. Pindutin mo yung PASS.':(e.name=='AbortError'?'Boss, natagalan yung server. Subukan mo ulit.':'Boss, hindi ko maabot yung server. Baka natutulog pa, subukan mo ulit mamaya.');
     log('sys',String(e.message||e));busy=false;reply(msg);
   }
 }
@@ -146,23 +149,25 @@ function reply(s){hist.push({role:'assistant',content:s});log('jarvis',s);speak(
 function done(){speaking=false;busy=false;setSt(on?'LISTENING':'STANDBY');if(on)setTimeout(listen,300)}
 const isTL=s=>/\b(ang|ng|mga|po|opo|ako|ikaw|hindi|naman|sa|ko|mo|natin|salamat|boss|gusto|kasi|pero|yung|ano|oo|sige|ayos|tapos|na)\b/i.test(s);
 async function nativeSpeak(s){
-  const T=P().TextToSpeech;
-  if(T){
-    try{await T.speak({text:s,lang:isTL(s)?'fil-PH':'en-US',rate:1.0,pitch:.9,volume:1.0});return}
-    catch(e1){log('sys','TTS '+(isTL(s)?'fil-PH':'en-US')+' failed: '+(e1.message||e1));
-      try{await T.speak({text:s,lang:'en-US',rate:1.0,pitch:.9,volume:1.0});return}catch(e2){log('sys','TTS en-US failed: '+(e2.message||e2))}}
+  const N=P().JarvisNative;
+  if(N&&N.speak){
+    try{await N.speak({text:s,lang:isTL(s)?'fil-PH':'en-US'});return}
+    catch(e){log('sys','Phone TTS error: '+(e.message||e))}
   }
-  if(!window.speechSynthesis)throw new Error('walang TTS sa phone');
+  const T=P().TextToSpeech;
+  if(T){try{await T.speak({text:s,lang:'en-US',rate:1.0,pitch:.9,volume:1.0});return}catch(e){log('sys','TTS plugin error: '+(e.message||e))}}
+  if(!window.speechSynthesis)throw new Error('walang TTS engine. Settings > Text-to-speech output: pumili ng Google engine');
   await new Promise(res=>{const u=new SpeechSynthesisUtterance(s);u.lang=isTL(s)?'fil-PH':'en-US';u.onend=u.onerror=res;speechSynthesis.speak(u)});
 }
+let elevenDead=false;
 async function speak(s){
   s=s.replace(/J\.?A\.?R\.?V\.?I\.?S\.?/gi,'Jarvis');
   if(au){au.pause();au=null}
   speaking=true;setSt('SPEAKING');
   try{
-    if(K('voice')!=='phone'){
+    if(K('voice')!=='phone'&&!elevenDead){
       const r=await fetch(BASE+'/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
-      if(!r.ok){let b='';try{b=(await r.text()).slice(0,140)}catch(_){}throw new Error('ElevenLabs '+r.status+' '+b)}
+      if(!r.ok){let b='';try{b=(await r.text()).slice(0,300)}catch(_){}if(/quota_exceeded/.test(b)){elevenDead=true;throw new Error('Naubos na ang credits ng ElevenLabs. Phone voice muna hanggang mag-reset ang credits.')}throw new Error('ElevenLabs '+r.status+' '+b.slice(0,140))}
       const blob=await r.blob();
       if(!blob.size)throw new Error('walang audio na bumalik');
       const a=au=new Audio(URL.createObjectURL(blob));
@@ -209,7 +214,7 @@ async function listen(){
   try{rec.start()}catch(_){}
 }
 $('mic').onclick=async()=>{
-  if(on){on=false;$('mic').classList.remove('on');try{const SR=P().SpeechRecognition;SR&&await SR.stop();rec&&rec.abort()}catch(_){}if(au)au.pause();speaking=busy=false;setSt('STANDBY');return}
+  if(on){on=false;$('mic').classList.remove('on');try{const SR=P().SpeechRecognition;SR&&await SR.stop();rec&&rec.abort()}catch(_){}if(au)au.pause();try{const N=P().JarvisNative;N&&N.stopSpeak&&N.stopSpeak()}catch(_){}speaking=busy=false;setSt('STANDBY');return}
   const SR=P().SpeechRecognition;
   if(SR){try{const p=await SR.requestPermissions();if(p.speechRecognition!=='granted'){return log('sys','Kailangan ng mic permission. I-allow mo.')}const a=await SR.available();if(!a.available)return log('sys','Walang speech service sa phone. I-install o i-update ang Google app / Speech Services by Google.');fails=0;log('sys','Mic OK. Wika: '+lang+(popup?' (popup)':''))}catch(e){log('sys','Mic error: '+(e.message||e))}}
   on=true;$('mic').classList.add('on');
