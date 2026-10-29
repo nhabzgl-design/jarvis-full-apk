@@ -21,9 +21,18 @@ jobs:
         run: npm install
 
       - name: Prepare web assets
+        shell: bash
         run: |
           mkdir -p www
-          cp index.html www/index.html
+          if [ -f index.html ]; then
+            cp index.html www/index.html
+          elif [ -f www/index.html ]; then
+            echo "Using existing www/index.html"
+          else
+            echo "ERROR: index.html was not found in repository root or www/"
+            find . -maxdepth 4 -type f -name 'index.html' -print
+            exit 1
+          fi
 
       - name: Add Android platform
         run: |
@@ -262,10 +271,10 @@ jobs:
         run: |
           M=android/app/src/main/AndroidManifest.xml
           if ! grep -q RECORD_AUDIO "$M"; then
-            sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>\n    <queries><intent><action android:name="android.speech.RecognitionService"/></intent><intent><action android:name="android.intent.action.TTS_SERVICE"/></intent></queries>\n    <application#' "$M"
+            sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>\n <queries><intent><action android:name="android.speech.RecognitionService"/></intent><intent><action android:name="android.intent.action.TTS_SERVICE"/></intent></queries>\n <application#' "$M"
           fi
           if ! grep -q JarvisNotifService "$M"; then
-            sed -i 's#</application>#<service android:name="com.jarvis.ai.JarvisNotifService" android:label="Jarvis" android:exported="true" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"><intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter></service>\n    </application>#' "$M"
+            sed -i 's#</application>#<service android:name="com.jarvis.ai.JarvisNotifService" android:label="Jarvis" android:exported="true" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"><intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter></service>\n </application>#' "$M"
           fi
           cat "$M"
 
