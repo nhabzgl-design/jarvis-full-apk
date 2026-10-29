@@ -48,7 +48,7 @@ const K=k=>{try{return localStorage.getItem(k)||''}catch(_){return''}};
 const SYS=`You are Jarvis, the calm, loyal, dry-witted AI butler from Iron Man, living in the user's Android phone. You have no face, only a voice.
 Address the user as "boss". Be short: 1-2 sentences, spoken aloud. No markdown, no lists, no emojis.
 If the user speaks English, answer in natural English. If he speaks Tagalog or Taglish, answer in natural everyday Manila Taglish (like "Sige boss", "Ayos na", "Gets ko"). Never use deep formal Tagalog.
-Use tools whenever the user wants an action: open an app (YouTube, Facebook, Messenger, Google, Maps, WhatsApp), search, call, text, timer, alarm, location, battery, time, notes. For searches, use open_app with the query (youtube, facebook, google, maps).
+Use tools whenever the user wants an action: open any app by name, control music (use the music_player tool for the phone's own music player and never assume Spotify), flashlight on or off, search, call, text, timer, alarm, location, battery, time, notes. For searches, use open_app with the query (youtube, facebook, google, maps).
 Once Notification Access is on, Messenger and Facebook notifications are read aloud automatically by the phone. Use read_notifications to repeat the recent ones, set_auto_read to turn the automatic reading on or off, and open_notification_settings if access is off. You cannot read other apps' chats.
 Never claim an action worked unless the tool result says so. Write your name as "Jarvis".`;
 function setSt(s){state=s;const e=$('st');e.textContent=s;e.className=s=='STANDBY'?'':'on'}
@@ -64,14 +64,31 @@ const APPS={
   messenger:()=>['fb-messenger://','https://m.me/'],
   google:q=>['https://www.google.com/search?q='+encodeURIComponent(q||'')],
   maps:q=>['geo:0,0?q='+encodeURIComponent(q||''),'https://www.google.com/maps/search/'+encodeURIComponent(q||'')],
-  whatsapp:()=>['whatsapp://send','https://wa.me/'],
-  tiktok:()=>['snssdk1128://','https://www.tiktok.com/'],
-  spotify:q=>['spotify:search:'+encodeURIComponent(q||''),'https://open.spotify.com/search/'+encodeURIComponent(q||'')]
+  whatsapp:()=>['whatsapp://send','https://wa.me/']
 };
 const obj=(props,req)=>({type:'object',properties:props,required:req||[]});
 const tools=[
- {name:'open_app',description:'Open an app on the phone. app is one of: youtube, facebook, messenger, google, maps, whatsapp, tiktok, spotify. query is an optional search text.',inputSchema:obj({app:{type:'string'},query:{type:'string'}},['app']),
-  execute:async({app,query})=>{const f=APPS[String(app).toLowerCase()];if(!f)return 'unknown app';for(const u of f(query)){if(await openUrl(u))return 'opened '+app}return 'could not open '+app}},
+ {name:'open_app',description:'Open an app installed on the phone by its name (for example Messenger, Facebook, YouTube, GCash, Shopee, Camera, Settings, Gallery, Calculator). Do NOT use this for music: use the music_player tool. If query is given for youtube, facebook, google or maps, open the search for it.',inputSchema:obj({app:{type:'string'},query:{type:'string'}},['app']),
+  execute:async({app,query})=>{
+   const key=String(app).toLowerCase().trim();const N=P().JarvisNative;
+   if(/music|musika|musik|player|mp3|kanta/.test(key)&&N){try{await N.openMusic();return 'opened the phone music player'}catch(e){return 'no music player found: '+(e.message||e)}}
+   if(query&&APPS[key]){for(const u of APPS[key](query)){if(await openUrl(u))return 'opened '+app+' search: '+query}}
+   if(N){try{const r=await N.openApp({name:app});return 'opened '+r.label}catch(e){return 'the app '+app+' is not installed or not found'}}
+   if(APPS[key]){for(const u of APPS[key](query)){if(await openUrl(u))return 'opened '+app}}
+   return 'could not open '+app}},
+ {name:'music_player',description:'Control the music player of the phone. action: open (open the phone music player app), play, pause, toggle, next, previous, stop, now_playing (what song is playing). Use this for any music request, never assume Spotify.',inputSchema:obj({action:{type:'string'}},['action']),
+  execute:async({action})=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';const a=String(action).toLowerCase().trim();
+   try{
+    if(a=='open'){await N.openMusic();return 'opened the phone music player'}
+    if(a=='now_playing'){const r=await N.nowPlaying();return (r.playing?'playing: ':'paused: ')+(r.title||'unknown')+(r.artist?' by '+r.artist:'')}
+    const r=await N.media({cmd:a});
+    if(a=='play'&&!r.hasSession){await N.openMusic();await new Promise(z=>setTimeout(z,2500));await N.media({cmd:'play'});return 'opened the music player and sent play'}
+    return 'sent '+a+' ('+r.source+')'
+   }catch(e){return 'music control failed: '+(e.message||e)}}},
+ {name:'volume',description:'Raise or lower the media volume. dir is up or down.',inputSchema:obj({dir:{type:'string'}},['dir']),
+  execute:async({dir})=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';try{await N.volume({dir:dir=='down'?'down':'up'});return 'volume '+dir}catch(e){return 'failed'}}},
+ {name:'flashlight',description:'Turn the phone flashlight (torch) on or off.',inputSchema:obj({on:{type:'boolean'}},['on']),
+  execute:async({on})=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';try{await N.flashlight({on:!!on});return 'flashlight '+(on?'ON':'OFF')}catch(e){return 'flashlight failed: '+(e.message||e)}}},
  {name:'open_url',description:'Open any website link.',inputSchema:obj({url:{type:'string'}},['url']),
   execute:async({url})=>(await openUrl(url))?'opened':'failed'},
  {name:'phone_action',description:'Start a phone call, SMS, WhatsApp chat or email. kind is tel, sms, whatsapp or mailto. target is a phone number or email.',inputSchema:obj({kind:{type:'string'},target:{type:'string'},body:{type:'string'}},['kind','target']),
@@ -130,9 +147,13 @@ function done(){speaking=false;busy=false;setSt(on?'LISTENING':'STANDBY');if(on)
 const isTL=s=>/\b(ang|ng|mga|po|opo|ako|ikaw|hindi|naman|sa|ko|mo|natin|salamat|boss|gusto|kasi|pero|yung|ano|oo|sige|ayos|tapos|na)\b/i.test(s);
 async function nativeSpeak(s){
   const T=P().TextToSpeech;
-  if(T){await T.speak({text:s,lang:isTL(s)?'fil-PH':'en-GB',rate:1.0,pitch:.9,volume:1.0,category:'ambient'});return}
-  if(!window.speechSynthesis)return;
-  await new Promise(res=>{const u=new SpeechSynthesisUtterance(s);u.lang=isTL(s)?'fil-PH':'en-GB';u.onend=u.onerror=res;speechSynthesis.speak(u)});
+  if(T){
+    try{await T.speak({text:s,lang:isTL(s)?'fil-PH':'en-US',rate:1.0,pitch:.9,volume:1.0});return}
+    catch(e1){log('sys','TTS '+(isTL(s)?'fil-PH':'en-US')+' failed: '+(e1.message||e1));
+      try{await T.speak({text:s,lang:'en-US',rate:1.0,pitch:.9,volume:1.0});return}catch(e2){log('sys','TTS en-US failed: '+(e2.message||e2))}}
+  }
+  if(!window.speechSynthesis)throw new Error('walang TTS sa phone');
+  await new Promise(res=>{const u=new SpeechSynthesisUtterance(s);u.lang=isTL(s)?'fil-PH':'en-US';u.onend=u.onerror=res;speechSynthesis.speak(u)});
 }
 async function speak(s){
   s=s.replace(/J\.?A\.?R\.?V\.?I\.?S\.?/gi,'Jarvis');
@@ -141,13 +162,16 @@ async function speak(s){
   try{
     if(K('voice')!=='phone'){
       const r=await fetch(BASE+'/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
-      if(!r.ok)throw new Error('tts '+r.status);
-      const a=au=new Audio(URL.createObjectURL(await r.blob()));
-      await new Promise((res,rej)=>{a.onended=res;a.onerror=()=>rej(new Error('audio'));a.play().catch(rej)});
+      if(!r.ok){let b='';try{b=(await r.text()).slice(0,140)}catch(_){}throw new Error('ElevenLabs '+r.status+' '+b)}
+      const blob=await r.blob();
+      if(!blob.size)throw new Error('walang audio na bumalik');
+      const a=au=new Audio(URL.createObjectURL(blob));
+      a.volume=1;
+      await new Promise((res,rej)=>{a.onended=res;a.onerror=()=>rej(new Error('hindi mapatugtog ang audio'));a.play().catch(rej)});
       return done();
     }
-  }catch(e){log('sys','Phone voice na muna ('+(e.message||e)+')')}
-  try{await nativeSpeak(s)}catch(e){log('sys','TTS error: '+(e.message||e))}
+  }catch(e){log('sys','Phone voice na muna: '+(e.message||e))}
+  try{await nativeSpeak(s)}catch(e){log('sys','Walang boses: '+(e.message||e))}
   done();
 }
 $('st').ondblclick=()=>{const p=K('voice')==='phone'?'':'phone';try{localStorage.setItem('voice',p)}catch(_){}log('sys',p?'Phone voice ON (libre, walang ElevenLabs)':'ElevenLabs voice ON')};
@@ -195,6 +219,12 @@ const LG=[['fil-PH','TL'],['en-PH','PH'],['en-US','EN']];let gi=0;
 $('lang').onclick=function(){gi=(gi+1)%3;lang=LG[gi][0];this.textContent=LG[gi][1];fails=0;try{const SR=P().SpeechRecognition;SR&&SR.stop()}catch(_){}log('sys','Wika ng mic: '+lang+' ('+LG[gi][1]+')')};
 $('txt').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){const q=e.target.value.trim();e.target.value='';ask(q)}};
 $('send').onclick=()=>{const q=$('txt').value.trim();if(q){$('txt').value='';ask(q)}};
+// pagbalik sa app: ibalik ang pakikinig
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!on)return;
+  try{const SR=P().SpeechRecognition;SR&&await SR.stop()}catch(_){}
+  speaking=false;busy=false;fails=0;setSt('LISTENING');setTimeout(listen,600);
+});
 // status chips + wake up Render (free plan sleeps)
 $('ct').className='g';$('cp').className=native()?'g':'';
 $('cv').className=(P().SpeechRecognition||window.SpeechRecognition||window.webkitSpeechRecognition)?'g':'';
