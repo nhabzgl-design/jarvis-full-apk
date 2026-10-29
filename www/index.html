@@ -1,40 +1,17 @@
 <!doctype html>
 <html lang="en">
-<head><style>
-@font-face {
-  font-family: "Optimistic";
-  font-style: normal;
-  font-weight: 400 600;
-  font-display: swap;
-  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Optimistic Mono";
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
-}
-:where(html) {
-  font-family: "Optimistic", system-ui, sans-serif;
-}
-:where(code, pre, kbd, samp) {
-  font-family: "Optimistic Mono", ui-monospace, monospace;
-}
-</style>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>J.A.R.V.I.S.</title>
-<link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#020b16">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Share+Tech+Mono&display=swap">
 <style>
-:root{--bg:#020b16;--cy:#5fd8ff;--dim:#2a7390;--ok:#3ee59a;--am:#ffb347;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#020b16;--cy:#5fd8ff;--dim:#2a7390;--ok:#3ee59a;--am:#ffb347;color-scheme:dark}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:radial-gradient(ellipse at 50% 35%,#06223a,var(--bg) 70%);color:var(--cy);font-family:"Share Tech Mono",ui-monospace,monospace}
-body{display:flex;flex-direction:column;padding:10px 14px 12px;gap:8px;max-width:640px;margin:0 auto}
-header{display:flex;justify-content:space-between;align-items:center;font:700 20px Rajdhani,sans-serif;letter-spacing:.3em}
-#st{font:500 13px Rajdhani,sans-serif;letter-spacing:.16em;padding:4px 10px;border:1px solid var(--am);color:var(--am);border-radius:99px}
+html,body{height:100%;margin:0;background:radial-gradient(ellipse at 50% 35%,#06223a,var(--bg) 70%);color:var(--cy);font-family:ui-monospace,Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(12px + env(safe-area-inset-bottom,0px));gap:8px;max-width:640px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;font:700 20px system-ui,sans-serif;letter-spacing:.3em}
+#st{font:500 13px system-ui,sans-serif;letter-spacing:.16em;padding:4px 10px;border:1px solid var(--am);color:var(--am);border-radius:99px}
 #st.on{border-color:var(--ok);color:var(--ok)}
 #chips{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dim)}
 #chips span{border:1px solid #14405a;padding:4px 8px;background:rgba(95,216,255,.05)}
@@ -42,261 +19,191 @@ header{display:flex;justify-content:space-between;align-items:center;font:700 20
 #chips i.g{background:var(--ok)}
 #stage{flex:1;min-height:0;display:grid;place-items:center;position:relative}
 #orb{width:min(88vw,46vh);aspect-ratio:1;max-width:100%}
-#core{position:absolute;text-align:center;pointer-events:none;font:700 clamp(16px,5vw,26px) Rajdhani,sans-serif;letter-spacing:.28em;text-shadow:0 0 14px var(--cy)}
-#core small{display:block;font:400 11px "Share Tech Mono",monospace;letter-spacing:.08em;color:var(--dim);margin-top:6px;text-shadow:none;max-width:30vw;margin-inline:auto;min-height:1.2em}
+#core{position:absolute;text-align:center;pointer-events:none;font:700 clamp(16px,5vw,26px) system-ui,sans-serif;letter-spacing:.28em;text-shadow:0 0 14px var(--cy)}
+#core small{display:block;font:400 11px ui-monospace,monospace;letter-spacing:.08em;color:var(--dim);margin-top:6px;text-shadow:none;max-width:30vw;margin-inline:auto;min-height:1.2em}
 #log{height:24vh;overflow:auto;font-size:13px;line-height:1.5;border-top:1px solid #14405a;padding-top:8px}
 #log p{margin:0 0 6px}
 #log .you{color:#9fb8c4}#log .jarvis{color:var(--cy)}#log .sys{color:var(--am)}
-#log a{color:var(--ok)}
 #bar{display:flex;gap:8px}
 input{flex:1;min-width:0;background:rgba(95,216,255,.06);border:1px solid #14405a;color:var(--cy);padding:11px;font:inherit;font-size:14px}
 input:focus{outline:none;border-color:var(--cy)}
-button{background:rgba(95,216,255,.08);color:var(--cy);border:1px solid var(--dim);padding:0 14px;font:700 14px Rajdhani,sans-serif;letter-spacing:.14em;cursor:pointer;min-height:44px}
-button:focus-visible,button:hover{border-color:var(--cy);outline:none}
+button{background:rgba(95,216,255,.08);color:var(--cy);border:1px solid var(--dim);padding:0 12px;font:700 14px system-ui,sans-serif;letter-spacing:.12em;min-height:44px}
+button:focus-visible{border-color:var(--cy);outline:none}
 #mic.on{background:var(--cy);color:var(--bg)}
 </style>
 </head>
 <body>
 <header><span>J.A.R.V.I.S</span><span id="st">STANDBY</span></header>
-<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i class="g"></i>Tools 11 NO-FACE</span><span><i class="g"></i>Phone links</span></div>
+<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i id="ct"></i>Tools</span><span><i id="cp"></i>Phone</span></div>
 <div id="stage"><canvas id="orb"></canvas><div id="core">J.A.R.V.I.S<small id="int"></small></div></div>
 <div id="log"></div>
-<div id="bar"><button id="lang" title="Listening language">EN</button><input id="txt" placeholder="Type or tap the mic…" autocomplete="off"><button id="send">SEND</button><button id="keys">PASS</button><button id="mic">MIC</button></div>
+<div id="bar"><button id="lang">TL</button><input id="txt" placeholder="Type or tap the mic…" autocomplete="off"><button id="send">SEND</button><button id="keys">PASS</button><button id="mic">MIC</button></div>
 <script>
+const BASE='https://jarvis-ai-9drf.onrender.com';
 const $=id=>document.getElementById(id);
-let sample=null,lang='en-US',on=false,rec=null,speaking=false,busy=false,hist=[],state='STANDBY',amp=0,t=0;
-const SYS=`You are J.A.R.V.I.S., the calm, dry-witted, loyal AI butler from Iron Man, running on the user's phone browser.
-
-PERSONALITY:
-- British butler vibe but speaks like a real Filipino when needed. Witty, calm, helpful, never cringe.
-- Address user as "sir" normally, but if user says "boss", call him "boss" too. Use "po" naturally when speaking Tagalog, not forced.
-
-LANGUAGE RULES - VERY IMPORTANT FOR TAGALOG:
-- If user speaks English, reply in natural English.
-- If user speaks Tagalog or Taglish, reply in NATURAL Manila Tagalog / Taglish - like how real Filipinos talk in Makati/BGC!
-- AVOID bad literal translations! AVOID deep formal Tagalog like "batid ko", "datapwat", "subalit", "marapat". NEVER use those!
-- USE everyday conversational Tagalog: "Gets kita boss", "Sige ayusin natin", "Ayos na yan", "Tara", "Sige lang", "Ano ba", "Syempre", "Oo naman"
-- It's OK to mix Tagalog + English naturally (Taglish) - that's how Filipinos really talk! Example: "Sige boss, naayos ko na yung timer mo, 5 minutes lang!"
-- Keep it short, 2 sentences max, spoken aloud. No markdown, no lists, no emojis.
-- Sound smart, not like a textbook or Google Translate!
-
-TOOLS:
-- Use tools when user wants action: timer, open site, call, text, WhatsApp, email, note, location, battery.
-- You cannot read Messenger/phone notifications from a web page (browser security). If asked, explain briefly in natural Tagalog: "Boss hindi ko pa mabasa direct yung Messenger dahil naka-browser lang ako, pero pag ni-paste mo dito babasahin ko!" and suggest pasting.
-
-Never claim action succeeded unless tool returned success.
-Write your name as "Jarvis", never spelled J.A.R.V.I.S in speech.
-`;
-function setSt(s){state=s;const e=$('st');e.textContent=s;e.className=s=='STANDBY'?'':'on'}
-function log(k,txt,href){const p=document.createElement('p');p.className=k;p.textContent=(k=='you'?'> ':k=='jarvis'?'J: ':'! ')+txt;if(href){p.append(' ');const a=document.createElement('a');a.href=href;a.target='_blank';a.rel='noopener';a.textContent='open';p.append(a)}$('log').append(p);$('log').scrollTop=1e9}
-function openLink(u){let w=null;try{w=window.open(u,'_blank')}catch(_){}if(!w)log('sys','Tap to continue:',u)}
-
-async function nativeListen(){
-  const SR = NSR();
-  if(!SR) return false;
-  try{
-    const perm = await SR.requestPermissions().catch(()=>null);
-    if(perm && perm.speechRecognition && perm.speechRecognition!=='granted'){
-      log('sys','Mic permission denied, allow in app settings');
-      return false;
-    }
-  }catch(_){}
-  try{
-    await SR.start({language: lang, maxResults: 1, prompt: "Speak now", partialResults: true, popup: false});
-    setSt('LISTENING');
-    return true;
-  }catch(e){ log('sys','Native mic error '+e.message); return false; }
-}
-let nativeListening=false;
-function setupNativeSR(){
-  const SR=NSR();
-  if(!SR) return;
-  SR.addListener('partialResults', data=>{
-    if(data && data.matches && data.matches[0]){
-      $('int').textContent = data.matches[0].slice(-40);
-    }
-  });
-  SR.addListener('listeningState', s=>{
-    if(s && !s.status) {
-      if(on && !busy && !speaking) setTimeout(()=>nativeListen(), 300);
-    }
-  });
-  SR.addListener('result', data=>{
-    const txt = data && data.matches && data.matches[0] ? data.matches[0].trim() : '';
-    $('int').textContent='';
-    if(txt) ask(txt);
-  });
-}
-
-const NSR=()=>window.Capacitor&&window.Capacitor.Plugins&&Capacitor.Plugins.SpeechRecognition;
-const tools=[
- {name:'open_url',description:'Open website',inputSchema:{type:'object',properties:{url:{type:'string'}},required:['url']},execute:({url})=>{openLink(url);return 'opened '+url}},
- {name:'phone_action',description:'Call SMS WhatsApp email',inputSchema:{type:'object',properties:{kind:{type:'string'},target:{type:'string'},body:{type:'string'}},required:['kind','target']},execute:({kind,target,body})=>{const b=encodeURIComponent(body||'');let u='';if(kind=='whatsapp'){u='https://wa.me/'+String(target).replace(/[^0-9]/g,'')+'?text='+b;}else if(kind=='mailto'){u='mailto:'+target+'?body='+b;}else{u=kind+':'+target+(kind=='sms'&&body?'?body='+b:'');}openLink(u);return 'prepared '+kind}},
- {name:'set_timer',description:'Set timer',inputSchema:{type:'object',properties:{seconds:{type:'number'},label:{type:'string'}},required:['seconds']},execute:({seconds,label})=>{setTimeout(()=>{log('sys','Timer: '+(label||'done'))},seconds*1000);return 'timer '+seconds}},
- {name:'remember',description:'Save note',inputSchema:{type:'object',properties:{note:{type:'string'}}},required:[],execute:({note})=>{let n=[];try{n=JSON.parse(localStorage.getItem('jv')||'[]')}catch(_){}if(note){n.push(note);localStorage.setItem('jv',JSON.stringify(n));return 'saved'}return JSON.stringify(n)}},
- {name:'current_time',description:'Time',inputSchema:{type:'object',properties:{},required:[]},execute:()=>new Date().toString()},
- {name:'get_location',description:'GPS location',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Geolocation){const pos=await Capacitor.Plugins.Geolocation.getCurrentPosition();const lat=pos.coords.latitude,lng=pos.coords.longitude;openLink('https://maps.google.com/?q='+lat+','+lng);return 'Location '+lat+','+lng;}if(navigator.geolocation){return await new Promise((res,rej)=>{navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude;openLink('https://maps.google.com/?q='+lat+','+lng);res('Location '+lat+','+lng);},e=>rej('GPS error'));});}return 'Location not available';}catch(e){return 'Location error '+e.message}}},
- {name:'get_battery',description:'Battery',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){const info=await Capacitor.Plugins.Device.getBatteryInfo().catch(()=>null);if(info)return 'Battery '+Math.round((info.batteryLevel||0)*100)+'%, Charging '+(info.isCharging?'yes':'no');}if(navigator.getBattery){const b=await navigator.getBattery();return 'Battery '+Math.round(b.level*100)+'%, '+(b.charging?'charging':'not charging');}return 'Battery not available';}catch(e){return 'Battery error '+e.message}}},
- {name:'get_device_info',description:'Device info',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Device){const info=await Capacitor.Plugins.Device.getInfo();return 'Model '+info.model+', OS '+info.operatingSystem+' '+info.osVersion;}return 'UA '+navigator.userAgent.slice(0,80);}catch(e){return 'Device error '+e.message}}},
- {name:'open_camera',description:'Open camera',inputSchema:{type:'object',properties:{},required:[]},execute:async()=>{try{if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Camera){await Capacitor.Plugins.Camera.getPhoto({quality:90,resultType:'uri'});return 'Photo taken';}return 'Camera not installed';}catch(e){return 'Camera error '+e.message}}}
-];try{n=JSON.parse(localStorage.getItem('jv')||'[]');if(note){n.push(note);localStorage.setItem('jv',JSON.stringify(n))}}catch(_){return 'storage unavailable'}return note?'saved':JSON.stringify(n)}},
- {name:'current_time',description:'Get the current local date and time.',inputSchema:{type:'object',properties:{}},execute:()=>new Date().toString()}];
-function voice(tl){
-  const V=speechSynthesis.getVoices();
-  // For Tagalog, try to find best Filipino voice first
-  if(tl){
-    let v = V.find(x=>/fil|tl-PH/i.test(x.lang) && /natural|premium|enhanced/i.test(x.name)) 
-         || V.find(x=>/fil|tl-PH/i.test(x.lang))
-         || V.find(x=>/fil/i.test(x.name.toLowerCase()));
-    if(v) return v;
-  }
-  // For English, British male
-  return V.find(x=>/en[-_]GB/i.test(x.lang)&&/male|daniel|arthur|oliver|george/i.test(x.name))
-      || V.find(x=>/en[-_]GB/i.test(x.lang))
-      || V.find(x=>/^en/i.test(x.lang))
-      || V[0];
-}
-function browserSpeak(s){
-  if(!window.speechSynthesis){busy=false;return}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(s);
-  const tl=/\b(ang|ng|mga|po|opo|ako|ikaw|hindi|naman|ba|sa|ko|mo|niya|natin|kayo|salamat|boss|nag|gusto|kasi|pero|tapos|yan|to|pa|lang|na|yung|ano|oo|sige|ayusin)\b/i.test(s);
-  const v=voice(tl);
-  if(v){u.voice=v;u.lang=v.lang;}
-  else if(tl){u.lang='fil-PH';}
-  // Natural prosody for Tagalog - slightly slower and lower pitch for more natural sound
-  if(tl){ u.pitch=.78; u.rate=.92; } else { u.pitch=.82; u.rate=.97; }
-
- u.onstart=()=>{speaking=true;setSt('SPEAKING')};
- u.onend=u.onerror=done;speechSynthesis.speak(u)}
-function reply(s){hist.push({role:'assistant',content:s});log('jarvis',s);speak(s)}
+const P=()=>(window.Capacitor&&window.Capacitor.Plugins)||{};
+const native=()=>!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+let lang='fil-PH',on=false,speaking=false,busy=false,hist=[],state='STANDBY',amp=0,t=0,au=null,rec=null;
 const K=k=>{try{return localStorage.getItem(k)||''}catch(_){return''}};
-async function llm(m){
-  const r=await fetch('https://jarvis-ai-9drf.onrender.com/chat',{method:'POST',headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
-  if(!r.ok)throw new Error(r.status);
-  return r.json()
+const SYS=`You are Jarvis, the calm, loyal, dry-witted AI butler from Iron Man, living in the user's Android phone. You have no face, only a voice.
+Address the user as "boss". Be short: 1-2 sentences, spoken aloud. No markdown, no lists, no emojis.
+If the user speaks English, answer in natural English. If he speaks Tagalog or Taglish, answer in natural everyday Manila Taglish (like "Sige boss", "Ayos na", "Gets ko"). Never use deep formal Tagalog.
+Use tools whenever the user wants an action: open an app (YouTube, Facebook, Messenger, Google, Maps, WhatsApp), search, call, text, timer, alarm, location, battery, time, notes. For searches, use open_app with the query (youtube, facebook, google, maps).
+Once Notification Access is on, Messenger and Facebook notifications are read aloud automatically by the phone. Use read_notifications to repeat the recent ones, set_auto_read to turn the automatic reading on or off, and open_notification_settings if access is off. You cannot read other apps' chats.
+Never claim an action worked unless the tool result says so. Write your name as "Jarvis".`;
+function setSt(s){state=s;const e=$('st');e.textContent=s;e.className=s=='STANDBY'?'':'on'}
+function log(k,txt){const p=document.createElement('p');p.className=k;p.textContent=(k=='you'?'> ':k=='jarvis'?'J: ':'! ')+txt;$('log').append(p);$('log').scrollTop=1e9}
+async function openUrl(u){
+  const L=P().AppLauncher;
+  if(L){try{const r=await L.openUrl({url:u});if(r&&r.completed!==false)return true}catch(_){}return false}
+  try{window.open(u,'_blank');return true}catch(_){return false}
 }
-async function ask(q){if(busy)return;busy=true;log('you',q);setSt('THINKING');
-  hist.push({role:'user',content:q});hist=hist.slice(-6);while(hist[0]?.role!='user')hist.shift(); // Faster - less history
- try{const m=hist.map(h=>({...h}));let out='';
-  for(let i=0;i<4;i++){const d=await llm(m);m.push({role:'assistant',content:d.content});const tu=d.content.filter(b=>b.type=='tool_use');out=d.content.filter(b=>b.type=='text').map(b=>b.text).join(' ')||out;if(!tu.length)break;
-   const rs=[];for(const u of tu){let res;try{res=String(await tools.find(z=>z.name==u.name).execute(u.input))}catch(e){res='error'}rs.push({type:'tool_result',tool_use_id:u.id,content:res})}m.push({role:'user',content:rs})}
-  reply((out||'Very good, sir.').replace(/[*#_`]/g,''))}
- catch(e){hist.pop();reply('Apologies sir, I could not reach my core. Please check the passcode.')}}
-function done(){speaking=false;busy=false;setSt(on?'LISTENING':'STANDBY');setTimeout(()=>listen(), 300)}
-// Fast mode toggle - double tap STANDBY to switch
-let tapCount=0;
-$('st').onclick=()=>{
-  tapCount++;
-  setTimeout(()=>tapCount=0, 400);
-  if(tapCount>=2){
-    const fast = localStorage.getItem('fastVoice') !== '0';
-    localStorage.setItem('fastVoice', fast?'0':'1');
-    log('sys', fast?'HQ ADAM voice ON (gwapo boses)!':'FAST phone voice ON (instant)! Double tap STANDBY to switch to ADAM');
-    tapCount=0;
-  }
+const APPS={
+  youtube:q=>['vnd.youtube://results?search_query='+encodeURIComponent(q||''),'https://www.youtube.com/results?search_query='+encodeURIComponent(q||'')],
+  facebook:q=>q?['https://www.facebook.com/search/top/?q='+encodeURIComponent(q)]:['fb://feed','https://www.facebook.com/'],
+  messenger:()=>['fb-messenger://','https://m.me/'],
+  google:q=>['https://www.google.com/search?q='+encodeURIComponent(q||'')],
+  maps:q=>['geo:0,0?q='+encodeURIComponent(q||''),'https://www.google.com/maps/search/'+encodeURIComponent(q||'')],
+  whatsapp:()=>['whatsapp://send','https://wa.me/'],
+  tiktok:()=>['snssdk1128://','https://www.tiktok.com/'],
+  spotify:q=>['spotify:search:'+encodeURIComponent(q||''),'https://open.spotify.com/search/'+encodeURIComponent(q||'')]
 };
+const obj=(props,req)=>({type:'object',properties:props,required:req||[]});
+const tools=[
+ {name:'open_app',description:'Open an app on the phone. app is one of: youtube, facebook, messenger, google, maps, whatsapp, tiktok, spotify. query is an optional search text.',inputSchema:obj({app:{type:'string'},query:{type:'string'}},['app']),
+  execute:async({app,query})=>{const f=APPS[String(app).toLowerCase()];if(!f)return 'unknown app';for(const u of f(query)){if(await openUrl(u))return 'opened '+app}return 'could not open '+app}},
+ {name:'open_url',description:'Open any website link.',inputSchema:obj({url:{type:'string'}},['url']),
+  execute:async({url})=>(await openUrl(url))?'opened':'failed'},
+ {name:'phone_action',description:'Start a phone call, SMS, WhatsApp chat or email. kind is tel, sms, whatsapp or mailto. target is a phone number or email.',inputSchema:obj({kind:{type:'string'},target:{type:'string'},body:{type:'string'}},['kind','target']),
+  execute:async({kind,target,body})=>{const b=encodeURIComponent(body||'');let u;if(kind=='whatsapp')u='https://wa.me/'+String(target).replace(/\D/g,'')+'?text='+b;else if(kind=='mailto')u='mailto:'+target+'?body='+b;else u=kind+':'+target+(kind=='sms'&&body?'?body='+b:'');return (await openUrl(u))?'prepared '+kind+' (user must confirm in the app)':'failed'}},
+ {name:'set_timer',description:'Set a countdown timer in the phone clock app. seconds is the total length.',inputSchema:obj({seconds:{type:'number'},label:{type:'string'}},['seconds']),
+  execute:async({seconds,label})=>{const N=P().JarvisNative;if(N){try{await N.setTimer({seconds:Math.round(seconds),label:label||'Jarvis'});return 'timer set in clock app for '+seconds+' seconds'}catch(e){}}
+   setTimeout(()=>{log('sys','Timer: '+(label||'done'));speak(lang=='fil-PH'?'Boss, tapos na yung timer'+(label?' para sa '+label:'')+'.':'Boss, your timer'+(label?' for '+label:'')+' is complete.')},seconds*1000);return 'timer set inside Jarvis for '+seconds+' seconds (works only while the app is open)'}},
+ {name:'set_alarm',description:'Set an alarm in the phone clock app at a clock time. hour is 0-23, minute is 0-59. For relative requests like "in 30 minutes", call current_time first and compute the time.',inputSchema:obj({hour:{type:'number'},minute:{type:'number'},label:{type:'string'}},['hour','minute']),
+  execute:async({hour,minute,label})=>{const N=P().JarvisNative;if(!N)return 'alarm needs the installed APK, not available here';try{await N.setAlarm({hour:Math.round(hour),minute:Math.round(minute),label:label||'Jarvis'});return 'alarm set for '+String(Math.round(hour)).padStart(2,'0')+':'+String(Math.round(minute)).padStart(2,'0')}catch(e){return 'alarm failed: '+(e.message||e)}}},
+ {name:'read_notifications',description:'Get the most recent Messenger and Facebook notifications so you can read them to the user.',inputSchema:obj({}),
+  execute:async()=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';try{const a=await N.notifAccess();if(!a.enabled)return 'notification access is OFF, offer to open settings';const r=await N.getNotifs();return r.items&&r.items.length?r.items.slice(0,5).join('\n'):'no recent Messenger or Facebook notifications'}catch(e){return 'error '+(e.message||e)}}},
+ {name:'open_notification_settings',description:'Open the Android Notification Access screen so the user can allow Jarvis to read notifications.',inputSchema:obj({}),
+  execute:async()=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';try{await N.openNotifSettings();return 'opened settings; tell the user to turn on JARVIS (if greyed out: App info, three dots, Allow restricted settings)'}catch(e){return 'failed: '+(e.message||e)}}},
+ {name:'set_auto_read',description:'Turn automatic reading aloud of new Messenger and Facebook notifications on or off.',inputSchema:obj({enabled:{type:'boolean'}},['enabled']),
+  execute:async({enabled})=>{const N=P().JarvisNative;if(!N)return 'needs the installed APK';try{await N.setAutoRead({enabled:!!enabled});return 'auto read '+(enabled?'ON':'OFF')}catch(e){return 'failed'}}},
+ {name:'remember',description:'Save a note. With no note, return all saved notes.',inputSchema:obj({note:{type:'string'}}),
+  execute:({note})=>{let n=[];try{n=JSON.parse(localStorage.getItem('jv')||'[]');if(note){n.push(note);localStorage.setItem('jv',JSON.stringify(n))}}catch(_){return 'storage unavailable'}return note?'saved':JSON.stringify(n)}},
+ {name:'current_time',description:'Get the current local date and time.',inputSchema:obj({}),execute:()=>new Date().toString()},
+ {name:'get_location',description:'Get the phone GPS location and open it in Maps.',inputSchema:obj({}),
+  execute:async()=>{try{const G=P().Geolocation;if(G){await G.requestPermissions().catch(()=>{});const p=await G.getCurrentPosition({enableHighAccuracy:true,timeout:15000});const a=p.coords.latitude,b=p.coords.longitude;return 'lat '+a+', lng '+b+', maps link https://maps.google.com/?q='+a+','+b}
+   return await new Promise((res)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>res('lat '+p.coords.latitude+', lng '+p.coords.longitude),()=>res('location denied')):res('location unavailable'))}catch(e){return 'location error: '+(e.message||e)}}},
+ {name:'get_battery',description:'Get battery percentage and charging state.',inputSchema:obj({}),
+  execute:async()=>{try{const D=P().Device;if(D){const i=await D.getBatteryInfo();return 'battery '+Math.round((i.batteryLevel||0)*100)+'%, '+(i.isCharging?'charging':'not charging')}if(navigator.getBattery){const b=await navigator.getBattery();return 'battery '+Math.round(b.level*100)+'%'}return 'battery unavailable'}catch(e){return 'battery error'}}},
+ {name:'get_device_info',description:'Get phone model and Android version.',inputSchema:obj({}),
+  execute:async()=>{try{const D=P().Device;if(D){const i=await D.getInfo();return i.manufacturer+' '+i.model+', Android '+i.osVersion}return navigator.userAgent.slice(0,80)}catch(e){return 'device error'}}}
+];
+async function llm(m){
+  const r=await fetch(BASE+'/chat',{method:'POST',headers:{'content-type':'application/json','x-pass':K('pw')||'1234'},body:JSON.stringify({system:SYS,tools:tools.map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema})),messages:m})});
+  if(r.status==401)throw new Error('PASSCODE');
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
+async function ask(q){
+  if(busy)return;busy=true;log('you',q);setSt('THINKING');
+  hist.push({role:'user',content:q});hist=hist.slice(-8);while(hist[0]&&hist[0].role!='user')hist.shift();
+  try{
+    const m=hist.map(h=>({...h}));let out='';
+    for(let i=0;i<4;i++){
+      const d=await llm(m);m.push({role:'assistant',content:d.content});
+      const tu=d.content.filter(b=>b.type=='tool_use');
+      const tx=d.content.filter(b=>b.type=='text').map(b=>b.text).join(' ');if(tx)out=tx;
+      if(!tu.length)break;
+      const rs=[];
+      for(const u of tu){let res;try{const tl=tools.find(z=>z.name==u.name);res=tl?String(await tl.execute(u.input||{})):'unknown tool'}catch(e){res='error: '+(e.message||e)}rs.push({type:'tool_result',tool_use_id:u.id,content:res})}
+      m.push({role:'user',content:rs});
+    }
+    reply((out||'Sige boss.').replace(/[*#_`]/g,''));
+  }catch(e){
+    hist.pop();
+    const msg=e.message=='PASSCODE'?'Boss, mali yung passcode. Pindutin mo yung PASS.':'Boss, hindi ko maabot yung server. Baka natutulog pa, subukan mo ulit mamaya.';
+    log('sys',String(e.message||e));busy=false;reply(msg);
+  }
+}
+function reply(s){hist.push({role:'assistant',content:s});log('jarvis',s);speak(s)}
+function done(){speaking=false;busy=false;setSt(on?'LISTENING':'STANDBY');if(on)setTimeout(listen,300)}
+const isTL=s=>/\b(ang|ng|mga|po|opo|ako|ikaw|hindi|naman|sa|ko|mo|natin|salamat|boss|gusto|kasi|pero|yung|ano|oo|sige|ayos|tapos|na)\b/i.test(s);
+async function nativeSpeak(s){
+  const T=P().TextToSpeech;
+  if(T){await T.speak({text:s,lang:isTL(s)?'fil-PH':'en-GB',rate:1.0,pitch:.9,volume:1.0,category:'ambient'});return}
+  if(!window.speechSynthesis)return;
+  await new Promise(res=>{const u=new SpeechSynthesisUtterance(s);u.lang=isTL(s)?'fil-PH':'en-GB';u.onend=u.onerror=res;speechSynthesis.speak(u)});
+}
 async function speak(s){
   s=s.replace(/J\.?A\.?R\.?V\.?I\.?S\.?/gi,'Jarvis');
-  window.speechSynthesis&&speechSynthesis.cancel();
-  if(au){try{au.pause()}catch(_){} au=null}
-  log('jarvis',s);
-  hist.push({role:'assistant',content:s});
-  // Try ElevenLabs first (Adam pNInz6obpgDQGcFmaJgB)
-  try{
-    const r=await fetch('https://jarvis-ai-9drf.onrender.com/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
-    if(r.ok){
-      const blob=await r.blob();
-      const url=URL.createObjectURL(blob);
-      const a=au=new Audio(url);
-      a.onplay=()=>{speaking=true;setSt('SPEAKING')};
-      a.onended=()=>{URL.revokeObjectURL(url); done();};
-      a.onerror=()=>{URL.revokeObjectURL(url); browserSpeak(s);};
-      await a.play();
-      return;
-    }
-  }catch(e){ log('sys','TTS server busy, using phone voice'); }
-  // Fallback to phone voice - ensure it speaks!
-  browserSpeak(s);
-  return;
-}
-async function speakOld(s){
-  s=s.replace(/J\.?A\.?R\.?V\.?I\.?S\.?/gi,'Jarvis');
-  window.speechSynthesis&&speechSynthesis.cancel();
   if(au){au.pause();au=null}
-  
-  // SPEED MODE: Start browser voice IMMEDIATELY (0ms) while ElevenLabs loads in background
-  // Default to HQ Adam voice (fastVoice = 0 means HQ). Fast mode only if user double-tapped STANDBY
-  const useFastMode = localStorage.getItem('fastVoice') === '1';
-  
-  if(useFastMode){
-    // Instant browser voice - no waiting!
-    browserSpeak(s);
-    // Try ElevenLabs in background for next time, but don't wait
-    try{
-      const r=await fetch('https://jarvis-ai-9drf.onrender.com/tts',{method:'POST',headers:{'x-pass':K('pw'),'content-type':'application/json'},body:JSON.stringify({text:s})});
-      if(r.ok){
-        // Cache the audio for next similar response
-        console.log('ElevenLabs ready for next time');
-      }
-    }catch(_){}
-    return;
-  } else {
-    // High quality mode - wait for ElevenLabs
-    try{
-      const r=await fetch('https://jarvis-ai-9drf.onrender.com/tts',{method:'POST',headers:{'x-pass':K('pw'),'content-type':'application/json'},body:JSON.stringify({text:s})});
-      if(!r.ok)throw 0;
-      speechSynthesis.cancel();
+  speaking=true;setSt('SPEAKING');
+  try{
+    if(K('voice')!=='phone'){
+      const r=await fetch(BASE+'/tts',{method:'POST',headers:{'x-pass':K('pw')||'1234','content-type':'application/json'},body:JSON.stringify({text:s})});
+      if(!r.ok)throw new Error('tts '+r.status);
       const a=au=new Audio(URL.createObjectURL(await r.blob()));
-      a.onplay=()=>{speaking=true;setSt('SPEAKING')};
-      a.onended=a.onerror=done;
-      await a.play();
-      return;
-    }catch(e){
-      log('sys','Using fast phone voice');
+      await new Promise((res,rej)=>{a.onended=res;a.onerror=()=>rej(new Error('audio'));a.play().catch(rej)});
+      return done();
     }
-    browserSpeak(s);
-  }
+  }catch(e){log('sys','Phone voice na muna ('+(e.message||e)+')')}
+  try{await nativeSpeak(s)}catch(e){log('sys','TTS error: '+(e.message||e))}
+  done();
 }
+$('st').ondblclick=()=>{const p=K('voice')==='phone'?'':'phone';try{localStorage.setItem('voice',p)}catch(_){}log('sys',p?'Phone voice ON (libre, walang ElevenLabs)':'ElevenLabs voice ON')};
 $('keys').onclick=()=>{const p=prompt('Passcode',K('pw'));try{if(p!==null)localStorage.setItem('pw',p.trim())}catch(_){}};
 async function listen(){
-  if(!on || speaking || busy) return;
-  const SR=NSR();
+  if(!on||speaking||busy)return;
+  setSt('LISTENING');
+  const SR=P().SpeechRecognition;
   if(SR){
-    const ok = await nativeListen();
-    if(ok) return;
+    try{
+      const r=await SR.start({language:lang,maxResults:1,prompt:'',partialResults:false,popup:false});
+      const q=r&&r.matches&&r.matches[0];
+      if(q&&q.trim())return ask(q.trim());
+    }catch(e){
+      const m=String(e&&e.message||e);
+      if(/permission|denied/i.test(m)){on=false;$('mic').classList.remove('on');setSt('STANDBY');return log('sys','Walang mic permission. I-allow sa Settings > Apps > JARVIS > Permissions.')}
+    }
+    if(on&&!busy&&!speaking)setTimeout(listen,500);
+    return;
   }
-  if(!(rec&&!speaking&&!busy)) return;
-  try{rec.start();setSt('LISTENING')}catch(_){}
+  const W=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!W){on=false;$('mic').classList.remove('on');setSt('STANDBY');return log('sys','Walang speech recognition dito. Mag-type na lang.')}
+  rec=new W();rec.lang=lang;rec.onresult=e=>{const q=e.results[0][0].transcript;if(q)ask(q)};rec.onerror=()=>{};rec.onend=()=>{if(on&&!busy&&!speaking)setTimeout(listen,400)};
+  try{rec.start()}catch(_){}
 }
-function initRec(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){log('sys','Speech recognition is not supported in this browser. Use Chrome, or type below.');return false}
- rec=new SR();rec.lang=lang;rec.interimResults=true;
- rec.onresult=e=>{let f='',i='';for(const r of e.results)r.isFinal?f+=r[0].transcript:i+=r[0].transcript;$('int').textContent=(i||f).slice(-40);if(f.trim()){$('int').textContent='';ask(f.trim())}};
- rec.onerror=e=>{if(/not-allowed|service-not-allowed/.test(e.error)){on=false;$('mic').classList.remove('on');setSt('STANDBY');log('sys','Microphone is blocked here. Allow mic access for this page, or type instead.')}};
- rec.onend=()=>listen();return true}
-setupNativeSR();
 $('mic').onclick=async()=>{
-  if(on){on=false;$('mic').classList.remove('on');try{const SR=NSR(); if(SR) await SR.stop().catch(()=>{}); }catch(_){} try{rec&&rec.abort()}catch(_){} speechSynthesis.cancel(); if(au){try{au.pause()}catch(_){}} speaking=busy=false; setSt('STANDBY'); return}
-
- if(!rec&&!initRec())return;on=true;$('mic').classList.add('on');if(!hist.length)reply('Good day, sir. Jarvis online. How may I assist?');else listen()};
-$('lang').onclick=function(){lang=lang=='en-US'?'fil-PH':'en-US';this.textContent=lang=='en-US'?'EN':'TL';if(rec){rec.lang=lang;try{rec.abort()}catch(_){}}};
+  if(on){on=false;$('mic').classList.remove('on');try{const SR=P().SpeechRecognition;SR&&await SR.stop();rec&&rec.abort()}catch(_){}if(au)au.pause();speaking=busy=false;setSt('STANDBY');return}
+  const SR=P().SpeechRecognition;
+  if(SR){try{const p=await SR.requestPermissions();if(p.speechRecognition!=='granted'){return log('sys','Kailangan ng mic permission. I-allow mo.')}const a=await SR.available();if(!a.available)return log('sys','Walang speech service sa phone. I-install ang Google app / Speech Services.')}catch(e){log('sys','Mic error: '+(e.message||e))}}
+  on=true;$('mic').classList.add('on');
+  if(!hist.length)reply(lang=='fil-PH'?'Online na ako, boss. Ano ang maitutulong ko?':'Jarvis online. How may I assist, boss?');else listen();
+};
+$('lang').onclick=function(){lang=lang=='en-US'?'fil-PH':'en-US';this.textContent=lang=='en-US'?'EN':'TL';try{const SR=P().SpeechRecognition;SR&&SR.stop()}catch(_){}};
 $('txt').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){const q=e.target.value.trim();e.target.value='';ask(q)}};
-$('send').onclick=()=>{const el=$('txt');const q=el.value.trim();if(q){el.value='';ask(q)}};
-if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}} setupNativeSR();
-$('cv').className=(window.SpeechRecognition||window.webkitSpeechRecognition)?'g':'';
-$('cc').className='g';
+$('send').onclick=()=>{const q=$('txt').value.trim();if(q){$('txt').value='';ask(q)}};
+// status chips + wake up Render (free plan sleeps)
+$('ct').className='g';$('cp').className=native()?'g':'';
+$('cv').className=(P().SpeechRecognition||window.SpeechRecognition||window.webkitSpeechRecognition)?'g':'';
+(async()=>{try{const r=await fetch(BASE+'/health');$('cc').className=r.ok?'g':'';log('sys',r.ok?'Server gising na.':'Server error '+r.status)}catch(_){log('sys','Ginigising ko pa yung server, hintay ng ~50 segundo...');setTimeout(()=>fetch(BASE+'/health').then(r=>{$('cc').className=r.ok?'g':''}).catch(()=>{}),30000)}})();
+
+// notification reader status
+(async()=>{const N=P().JarvisNative;if(!N)return;
+ try{N.addListener('notif',e=>log('sys',e.app+' - '+(e.title||'?')+': '+e.text))}catch(_){}
+ try{const a=await N.notifAccess();if(!a.enabled)log('sys','Para mabasa ko ang Messenger/Facebook notif: sabihin mo "buksan ang notification access".')}catch(_){}})();
 // orb
-const cv=$('orb'),x=cv.getContext('2d'),D=Math.min(devicePixelRatio||1,2),calm=matchMedia('(prefers-reduced-motion: reduce)').matches;let S=300;
+const cv=$('orb'),x=cv.getContext('2d'),D=Math.min(devicePixelRatio||1,2);let S=300;
 function rs(){S=cv.clientWidth;cv.width=cv.height=S*D;x.setTransform(D,0,0,D,0,0)}addEventListener('resize',rs);rs();
 function arcs(r,n,gap,w,off,col){x.strokeStyle=col;x.lineWidth=w;const seg=6.283/n;for(let i=0;i<n;i++){x.beginPath();x.arc(S/2,S/2,r,off+i*seg,off+(i+1)*seg-gap);x.stroke()}}
-function draw(){if(!calm)t+=.012;const th=state=='THINKING',col=th?'255,179,71':'95,216,255';
+function draw(){t+=.012;const th=state=='THINKING',col=th?'255,179,71':'95,216,255';
  const target=state=='SPEAKING'?.5+Math.random()*.5:state=='LISTENING'?.25+.15*Math.sin(t*6):th?.5:.1;amp+=(target-amp)*.15;
  x.clearRect(0,0,S,S);const c=S/2,R=S*.47;const g=x.createRadialGradient(c,c,R*.2,c,c,R);g.addColorStop(0,`rgba(${col},${.10+amp*.2})`);g.addColorStop(1,`rgba(${col},0)`);x.fillStyle=g;x.beginPath();x.arc(c,c,R,0,7);x.fill();
  arcs(R,5,.5,3,t*(th?3:.8),`rgba(${col},.9)`);arcs(R*.88,24,.12,2,-t*1.2,`rgba(${col},.55)`);arcs(R*.74,3,.9,4,t*1.9,`rgba(${col},.8)`);
  x.strokeStyle=`rgba(${col},.35)`;x.lineWidth=1;for(const k of[.62,.5]){x.beginPath();x.arc(c,c,R*k,0,7);x.stroke()}
- for(let i=0;i<60;i++){const a=i/60*6.283+t*.3,l=i%5?4:9;x.beginPath();x.moveTo(c+Math.cos(a)*R*1.0,c+Math.sin(a)*R*1.0);x.lineTo(c+Math.cos(a)*(R*1.0-l),c+Math.sin(a)*(R*1.0-l));x.stroke()}
+ for(let i=0;i<60;i++){const a=i/60*6.283+t*.3,l=i%5?4:9;x.beginPath();x.moveTo(c+Math.cos(a)*R,c+Math.sin(a)*R);x.lineTo(c+Math.cos(a)*(R-l),c+Math.sin(a)*(R-l));x.stroke()}
  x.strokeStyle=`rgba(${col},.9)`;x.lineWidth=2;x.beginPath();for(let i=-20;i<=20;i++){const px=c+i*R*.016,py=c+R*.2+Math.sin(i*.7+t*8)*amp*R*.12*Math.cos(i*.08);i==-20?x.moveTo(px,py):x.lineTo(px,py)}x.stroke();
  requestAnimationFrame(draw)}draw();
 </script>
-<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body>
+</body>
 </html>
