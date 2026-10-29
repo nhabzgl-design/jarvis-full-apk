@@ -1,0 +1,6 @@
+{
+  "appId": "com.jarvis.fullapk",
+  "appName": "JARVIS",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
