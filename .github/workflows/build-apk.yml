@@ -530,12 +530,48 @@ jobs:
       - name: Sync web files
         run: npx cap sync android
 
-      - name: Build APK
+      - name: Fix Jarvis tool variable conflict
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          python3 - <<'PY'
+          from pathlib import Path
 
+          p = Path(
+              "android/app/src/main/java/com/jarvis/ai/JarvisListenService.java"
+          )
+
+          if not p.exists():
+              raise SystemExit("ERROR: JarvisListenService.java not found")
+
+          s = p.read_text()
+
+          old_decl = 'JSONArray tools = new JSONArray('
+          new_decl = 'JSONArray toolSchemas = new JSONArray('
+
+          if old_decl in s:
+              s = s.replace(old_decl, new_decl)
+              print("Fixed JSONArray variable declaration.")
+          else:
+              print("JSONArray tools declaration not found.")
+
+          old_payload = 'payload.put("tools", tools);'
+          new_payload = 'payload.put("tools", toolSchemas);'
+
+          if old_payload in s:
+              s = s.replace(old_payload, new_payload)
+              print("Fixed payload variable reference.")
+          else:
+              print("Payload reference already differs or is fixed.")
+
+          p.write_text(s)
+
+          if 'JSONArray tools = new JSONArray(' in s:
+              raise SystemExit("ERROR: JSONArray variable conflict remains")
+
+          if 'payload.put("tools", toolSchemas);' not in s:
+              raise SystemExit("ERROR: Could not verify toolSchemas payload")
+
+          print("JarvisListenService.java check passed.")
+          PY
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
