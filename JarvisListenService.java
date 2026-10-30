@@ -242,53 +242,108 @@ public class JarvisListenService extends Service implements TextToSpeech.OnInitL
 
     // ---------------------------------------------------------------- main loop
 
-    private void runLoop() {
-        AudioRecord ar = null;
-        try {
-            if (!prepareModel()) return;
-            int minBuf = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-            int bufSize = Math.max(minBuf, 32000);
-            ar = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, 16000,
-                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufSize);
-            if (ar.getState() != AudioRecord.STATE_INITIALIZED) {
-                setStatus("Hindi mabuksan ang mic");
-                return;
-            }
-            ar.startRecording();
-            for (int w = 0; w < 30 && !ttsReady; w++) SystemClock.sleep(100);
-            speak("Online na ako, boss. Sabihin mo lang ang Jarvis.");
-            flush(ar);
-            setStatus("Nakikinig... sabihin: Jarvis");
+    
+private void runLoop() {
+    AudioRecord ar = null;
+    try {
+        if (!prepareModel()) return;
 
-            short[] chunk = new short[1600];
-            ArrayDeque<short[]> ring = new ArrayDeque<short[]>();
-            while (!stopFlag) {
-                int n = ar.read(chunk, 0, chunk.length);
-                if (n <= 0) { SystemClock.sleep(20); continue; }
-                short[] copy = Arrays.copyOf(chunk, n);
-                ring.addLast(copy);
-                while (ring.size() > 16) ring.removeFirst();
-                boolean end = rec.acceptWaveForm(copy, n);
-                String txt = end ? rec.getResult() : rec.getPartialResult();
-                if (txt != null && txt.contains("jarvis")) {
-                    rec.reset();
-                    handleCommand(ar, ring);
-                    rec.reset();
-                    ring.clear();
-                    flush(ar);
-                    setStatus("Nakikinig... sabihin: Jarvis");
-                }
-            }
-        } catch (Throwable t) {
-            setStatus("Error: " + t.getMessage());
-        } finally {
-            try { if (ar != null) { ar.stop(); ar.release(); } } catch (Exception ignored) { }
-            try { if (rec != null) rec.close(); } catch (Exception ignored) { }
-            try { if (model != null) model.close(); } catch (Exception ignored) { }
-            running = false;
-            try { if (wakeLock != null && wakeLock.isHeld()) wakeLock.release(); } catch (Exception ignored) { }
+        int minBuf = AudioRecord.getMinBufferSize(
+            16000,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        );
+
+        int bufSize = Math.max(minBuf, 32000);
+
+        ar = new AudioRecord(
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            16000,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufSize
+        );
+
+        if (ar.getState() != AudioRecord.STATE_INITIALIZED) {
+            setStatus("Hindi mabuksan ang mic");
+            return;
         }
+
+        ar.startRecording();
+
+        for (int w = 0; w < 30 && !ttsReady; w++) {
+            SystemClock.sleep(100);
+        }
+
+        // SILENT LISTENING:
+        // Walang automatic voice greeting.
+        // Walang audio-focus request habang naghihintay.
+        setStatus("Silent Listening: sabihin ang Jarvis");
+
+        short[] chunk = new short[1600];
+        ArrayDeque<short[]> ring = new ArrayDeque<short[]>();
+
+        while (!stopFlag) {
+            int n = ar.read(chunk, 0, chunk.length);
+
+            if (n <= 0) {
+                SystemClock.sleep(20);
+                continue;
+            }
+
+            short[] copy = Arrays.copyOf(chunk, n);
+            ring.addLast(copy);
+
+            while (ring.size() > 16) {
+                ring.removeFirst();
+            }
+
+            boolean end = rec.acceptWaveForm(copy, n);
+            String txt = end ? rec.getResult() : rec.getPartialResult();
+
+            if (txt != null && txt.contains("jarvis")) {
+                rec.reset();
+
+                // Vibration happens only after wake-word detection.
+                handleCommand(ar, ring);
+
+                rec.reset();
+                ring.clear();
+                flush(ar);
+
+                setStatus("Silent Listening: sabihin ang Jarvis");
+            }
+        }
+
+    } catch (Throwable t) {
+        setStatus("Error: " + t.getMessage());
+
+    } finally {
+        try {
+            if (ar != null) {
+                ar.stop();
+                ar.release();
+            }
+        } catch (Exception ignored) { }
+
+        try {
+            if (rec != null) rec.close();
+        } catch (Exception ignored) { }
+
+        try {
+            if (model != null) model.close();
+        } catch (Exception ignored) { }
+
+        running = false;
+
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+            }
+        } catch (Exception ignored) { }
     }
+}
+
 
     private void flush(AudioRecord ar) {
         try { ar.stop(); ar.startRecording(); } catch (Exception ignored) { }
