@@ -53,8 +53,20 @@ jobs:
           grep -q abiFilters "$G" || sed -i "0,/defaultConfig {/s//defaultConfig {\n        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }/" "$G"
           cat "$G"
 
-      - name: Sync web files
-        run: npx cap sync android
+      - name: Check JarvisListenService source
+        run: |
+          F=android/app/src/main/java/com/jarvis/ai/JarvisListenService.java
+
+          echo "=== Checking Java source ==="
+
+          if [ ! -f "$F" ]; then
+            echo "ERROR: JarvisListenService.java not found"
+            echo "Available files:"
+            find android/app/src/main/java -name '*Jarvis*'
+            exit 1
+          fi
+
+          grep -n -C 5 -E 'JSONArray tools|toolSchemas|tools\.run' "$F"
 
       - name: Add voice model
         run: |
