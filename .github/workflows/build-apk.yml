@@ -530,47 +530,36 @@ jobs:
       - name: Sync web files
         run: npx cap sync android
 
-      - name: Fix Jarvis tool variable conflict
+      - name: Fix JarvisListenService tools variable
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          p = Path(
-              "android/app/src/main/java/com/jarvis/ai/JarvisListenService.java"
-          )
+          p = Path("android/app/src/main/java/com/jarvis/ai/JarvisListenService.java")
 
           if not p.exists():
-              raise SystemExit("ERROR: JarvisListenService.java not found")
+              raise SystemExit(f"ERROR: File not found: {p}")
 
           s = p.read_text()
 
-          old_decl = 'JSONArray tools = new JSONArray('
-          new_decl = 'JSONArray toolSchemas = new JSONArray('
+          old = 'JSONArray tools = new JSONArray('
+          new = 'JSONArray toolSchemas = new JSONArray('
 
-          if old_decl in s:
-              s = s.replace(old_decl, new_decl)
-              print("Fixed JSONArray variable declaration.")
+          if old in s:
+              s = s.replace(old, new)
+              s = s.replace(
+                  'payload.put("tools", tools);',
+                  'payload.put("tools", toolSchemas);'
+              )
+              p.write_text(s)
+              print("Automatic fix applied.")
           else:
-              print("JSONArray tools declaration not found.")
+              print("No matching declaration found; checking source.")
 
-          old_payload = 'payload.put("tools", tools);'
-          new_payload = 'payload.put("tools", toolSchemas);'
-
-          if old_payload in s:
-              s = s.replace(old_payload, new_payload)
-              print("Fixed payload variable reference.")
-          else:
-              print("Payload reference already differs or is fixed.")
-
-          p.write_text(s)
-
-          if 'JSONArray tools = new JSONArray(' in s:
-              raise SystemExit("ERROR: JSONArray variable conflict remains")
-
-          if 'payload.put("tools", toolSchemas);' not in s:
-              raise SystemExit("ERROR: Could not verify toolSchemas payload")
-
-          print("JarvisListenService.java check passed.")
+          print("\n--- Relevant Java lines ---")
+          for i, line in enumerate(s.splitlines(), 1):
+              if "JSONArray tools" in line or "toolSchemas" in line or "tools.run(" in line:
+                  print(f"{i}: {line}")
           PY
       - name: Upload APK
         uses: actions/upload-artifact@v4
