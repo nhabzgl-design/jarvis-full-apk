@@ -513,8 +513,8 @@ private String askServer(String b64) throws Exception {
 
     // Tool definitions sent to the server
     JSONArray toolSchemas = new JSONArray(
-        prefs().getString("tools", "[]")
-    );
+    prefs().getString("tools", "[]")
+);
 
     String system = prefs().getString("system", "");
     String finalText = "";
