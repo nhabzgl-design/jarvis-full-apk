@@ -34,7 +34,7 @@ button:focus-visible{border-color:var(--cy);outline:none}
 </head>
 <body>
 <header><span>J.A.R.V.I.S</span><span id="st">STANDBY</span></header>
-<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i id="ct"></i>Tools</span><span><i id="cp"></i>Phone</span></div>
+<div id="chips"><span><i id="cv"></i>Voice</span><span><i id="cc"></i>Core</span><span><i id="ct"></i>Tools</span><span><i id="cp"></i>Phone</span><span id="aon" style="cursor:pointer;border-color:#2a7390"><i id="ca"></i>24/7</span></div>
 <div id="stage"><canvas id="orb"></canvas><div id="core">J.A.R.V.I.S<small id="int"></small></div></div>
 <div id="log"></div>
 <div id="bar"><button id="lang">TL</button><input id="txt" placeholder="Type or tap the mic…" autocomplete="off"><button id="send">SEND</button><button id="keys">PASS</button><button id="mic">MIC</button></div>
@@ -215,6 +215,7 @@ async function listen(){
 }
 $('mic').onclick=async()=>{
   if(on){on=false;$('mic').classList.remove('on');try{const SR=P().SpeechRecognition;SR&&await SR.stop();rec&&rec.abort()}catch(_){}if(au)au.pause();try{const N=P().JarvisNative;N&&N.stopSpeak&&N.stopSpeak()}catch(_){}speaking=busy=false;setSt('STANDBY');return}
+  if(aonOn)return log('sys','Naka-ON ang 24/7. Sabihin lang: "Jarvis, ..." Para gamitin ang MIC, i-OFF muna ang 24/7.');
   const SR=P().SpeechRecognition;
   if(SR){try{const p=await SR.requestPermissions();if(p.speechRecognition!=='granted'){return log('sys','Kailangan ng mic permission. I-allow mo.')}const a=await SR.available();if(!a.available)return log('sys','Walang speech service sa phone. I-install o i-update ang Google app / Speech Services by Google.');fails=0;log('sys','Mic OK. Wika: '+lang+(popup?' (popup)':''))}catch(e){log('sys','Mic error: '+(e.message||e))}}
   on=true;$('mic').classList.add('on');
@@ -224,6 +225,27 @@ const LG=[['fil-PH','TL'],['en-PH','PH'],['en-US','EN']];let gi=0;
 $('lang').onclick=function(){gi=(gi+1)%3;lang=LG[gi][0];this.textContent=LG[gi][1];fails=0;try{const SR=P().SpeechRecognition;SR&&SR.stop()}catch(_){}log('sys','Wika ng mic: '+lang+' ('+LG[gi][1]+')')};
 $('txt').onkeydown=e=>{if(e.key=='Enter'&&e.target.value.trim()){const q=e.target.value.trim();e.target.value='';ask(q)}};
 $('send').onclick=()=>{const q=$('txt').value.trim();if(q){$('txt').value='';ask(q)}};
+// 24/7 always listening (native service)
+let aonOn=false;
+const AON_TOOLS=['open_app','open_url','phone_action','set_timer','set_alarm','remember','current_time','get_battery','get_device_info','flashlight','music_player','volume','read_notifications','set_auto_read'];
+const SYS_VOICE=SYS+'\nVOICE MODE: you receive an audio recording of a command spoken right after the wake word Jarvis. Understand Tagalog, English or Taglish. Never ask follow-up questions: make your best guess and act with tools. If there is no intelligible speech, reply exactly [NOSPEECH]. Reply with one short sentence.';
+$('aon').onclick=async()=>{
+  const N=P().JarvisNative;
+  if(!N||!N.startAlwaysOn)return log('sys','Walang 24/7 sa APK na ito. I-install ang build na "24/7".');
+  try{
+    const s=await N.alwaysOnStatus();
+    if(s.running){await N.stopAlwaysOn();aonOn=false;$('ca').className='';return log('sys','24/7 OFF.')}
+    const SR=P().SpeechRecognition;
+    if(SR){const p=await SR.requestPermissions();if(p.speechRecognition!=='granted')return log('sys','Kailangan ng mic permission para sa 24/7.')}
+    if(!s.overlay){log('sys','I-on ang "Display over other apps" para sa JARVIS (para makapagbukas ng app habang nasa ibang app ka). Pagbalik mo, pindutin ulit ang 24/7.');return N.openOverlaySettings()}
+    if(on){on=false;$('mic').classList.remove('on');try{SR&&await SR.stop()}catch(_){}setSt('STANDBY')}
+    const decl=tools.filter(t=>AON_TOOLS.includes(t.name)).map(({name,description,inputSchema})=>({name,description,input_schema:inputSchema}));
+    await N.startAlwaysOn({base:BASE,pass:K('pw')||'1234',system:SYS_VOICE,tools:JSON.stringify(decl)});
+    aonOn=true;$('ca').className='g';
+    log('sys','24/7 ON. Sa unang beses, maghintay ng ilang segundo (hinahanda ang voice model). Sabihin: "Jarvis, ..." kahit nasa ibang app ka.');
+  }catch(e){log('sys','24/7 error: '+(e.message||e))}
+};
+(async()=>{const N=P().JarvisNative;if(!N||!N.alwaysOnStatus)return;try{const s=await N.alwaysOnStatus();aonOn=!!s.running;$('ca').className=s.running?'g':''}catch(_){}})();
 // pagbalik sa app: ibalik ang pakikinig
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState!=='visible'||!on)return;
