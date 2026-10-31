@@ -1,0 +1,11 @@
+{
+  "appId": "com.jarvis.ai",
+  "appName": "TALA",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
